@@ -1,3 +1,23 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const isSearchActive = ref(false)
+const searchQuery = ref('')
+
+const handleSearchClick = () => {
+  if (!isSearchActive.value) {
+    isSearchActive.value = true
+  }
+}
+
+const handleSearchBlur = () => {
+  // 입력이 비어 있으면 다시 placeholder 상태로 복귀
+  if (searchQuery.value === '') {
+    isSearchActive.value = false
+  }
+}
+</script>
+
 <template>
   <div class="page">
     <!-- Top-left text block from Figma
@@ -9,6 +29,67 @@
         LATENT
       </span>
     </div>
+
+    <!-- 상단 '모든 제품' 배경 바 (X:1047, Y:29, W:542, H:69, fill:#D9D9D9) -->
+    <div class="all-products-bar"></div>
+
+    <!-- 상단 '모든 제품' 강조 직사각형 (X:1047, Y:29, W:128, H:69, fill:#EDE9E9) -->
+    <div class="all-products-pill">
+      <svg
+        class="all-products-pill__icon"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="m19.5 8.25-7.5 7.5-7.5-7.5"
+        />
+      </svg>
+      <span class="all-products-pill__text">모든 제품</span>
+    </div>
+
+    <!-- 상단 검색어 입력 placeholder / 검색바 (클릭 시 전환) -->
+    <div class="search-placeholder" @click="handleSearchClick">
+      <template v-if="!isSearchActive">
+        <svg
+          class="search-placeholder__icon"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+          />
+        </svg>
+        <span class="search-placeholder__text">검색어 입력</span>
+      </template>
+      <input
+        v-else
+        class="search-input"
+        type="text"
+        v-model="searchQuery"
+        @blur="handleSearchBlur"
+      />
+    </div>
+
+    <!-- Figma 직사각형 + '회원가입' 텍스트 (X:1622, Y:41, W:118, H:45) -->
+    <div class="top-rect">
+      <span class="top-rect__text">회원가입</span>
+    </div>
+
+    <!-- Figma 검은 직사각형 + '로그인' 텍스트 (X:1774, Y:41, W:118, H:45) -->
+    <div class="top-rect--black">
+      <span class="top-rect--black__text">로그인</span>
+    </div>
+
 
     <!-- Single category icon from Figma (X:40, Y:189, 69x69, #D9D9D9) -->
     <div class="single-category-icon"></div>
@@ -187,7 +268,7 @@
         <div class="rect-block--ninth"></div>
 
         <!-- Tenth block
-             position: (1705, 189), size: (69 x 69), radius: 50, fill: #EDE9E9 -->
+             position: (1770, 189), size: (69 x 69), radius: 50, fill: #EDE9E9 -->
         <div class="rect-block--tenth"></div>
 
         <!-- Label text under rectangle: '신제품'
@@ -303,6 +384,212 @@
         <div class="category-line category-line--10"></div>
       </div>
     </section>
+
+    <!-- 'LATENT 겨울 이벤트' heading text (X:38, Y:403, W:353, H:36) -->
+    <div class="winter-heading">
+      <span class="winter-heading__text">LATENT 겨울 이벤트</span>
+    </div>
+
+    <!-- 크리스마스 왼쪽 큰 직사각형 (X:40, Y:468, W:1211, H:1113, radius:15, fill:#EDE9E9) -->
+    <div class="winter-rect-left"></div>
+
+    <!-- 크리스마스 오른쪽 큰 직사각형 (X:1221, Y:468, W:671, H:1113, radius:15, fill:#D9D9D9) -->
+    <div class="winter-rect-right"></div>
+
+    <!-- '색상별 인테리어' heading text (X:40, Y:1671, W:201, H:36) -->
+    <div class="color-heading">
+      <span class="color-heading__text">색상별 인테리어</span>
+    </div>
+
+    <!-- 첫 번째 색상 카드 - 빨간색 (X:40, Y:1733, W:256, H:337, radius:15, fill:#E25050) -->
+    <div class="color-card-red"></div>
+
+    <!-- 두 번째 색상 카드 - 주황색 (X:307, Y:1738, W:256, H:337, radius:15, fill:#F58F00) -->
+    <div class="color-card-orange"></div>
+
+    <!-- 주황색 카드 라벨 텍스트 (X:327, Y:1756, W:83, H:36, Inter Bold 30, #000000) -->
+    <div class="color-card-orange-label">
+      <span class="color-card-orange-label__text">주황색</span>
+    </div>
+
+    <!-- 주황색 카드 안 아이콘용 직사각형 + 중앙 화살표 아이콘 -->
+    <div class="color-card-orange-icon">
+      <svg
+        class="color-card-orange-arrow"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+        />
+      </svg>
+    </div>
+
+    <!-- 세 번째 색상 카드 - 노란색 (X:574, Y:1733, W:256, H:337, radius:15, fill:#E4EB19) -->
+    <div class="color-card-yellow"></div>
+
+    <!-- 노란색 카드 라벨 텍스트 (X:597, Y:1756, W:83, H:36, Inter Bold 30, #000000) -->
+    <div class="color-card-yellow-label">
+      <span class="color-card-yellow-label__text">노란색</span>
+    </div>
+
+    <!-- 노란색 카드 안 아이콘용 직사각형 + 중앙 화살표 아이콘 (블록 중심: X:606, Y:2020 근처) -->
+    <div class="color-card-yellow-icon">
+      <svg
+        class="color-card-yellow-arrow"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+        />
+      </svg>
+    </div>
+
+    <!-- 네 번째 색상 카드 - 초록색 (X:841, Y:1733, W:256, H:337, radius:15, fill:#12B543) -->
+    <div class="color-card-green"></div>
+
+    <!-- 초록색 카드 라벨 텍스트 (X:861, Y:1756, W:83, H:36, Inter Bold 30, #000000) -->
+    <div class="color-card-green-label">
+      <span class="color-card-green-label__text">초록색</span>
+    </div>
+
+    <!-- 초록색 카드 안 아이콘용 직사각형 + 중앙 화살표 아이콘 (블록 중심: X:870, Y:2020 근처) -->
+    <div class="color-card-green-icon">
+      <svg
+        class="color-card-green-arrow"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+        />
+      </svg>
+    </div>
+
+    <!-- 다섯 번째 색상 카드 - 파란색 (X:1105, Y:1733, W:256, H:337, radius:15, fill:#0014F5) -->
+    <div class="color-card-blue"></div>
+
+    <!-- 파란색 카드 라벨 텍스트 (X:1125, Y:1756, W:83, H:36, Inter Bold 30, #FFFFFF) -->
+    <div class="color-card-blue-label">
+      <span class="color-card-blue-label__text">파란색</span>
+    </div>
+
+    <!-- 파란색 카드 안 아이콘용 직사각형 + 중앙 화살표 아이콘 (블록 중심: X:1134, Y:2020 근처) -->
+    <div class="color-card-blue-icon">
+      <svg
+        class="color-card-blue-arrow"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+        />
+      </svg>
+    </div>
+
+    <!-- 여섯 번째 색상 카드 - 보라색 (X:1372, Y:1733, W:256, H:337, radius:15, fill:#7632D5) -->
+    <div class="color-card-purple"></div>
+
+    <!-- 보라색 카드 라벨 텍스트 (X:1389, Y:1756, W:83, H:36, Inter Bold 30, #000000) -->
+    <div class="color-card-purple-label">
+      <span class="color-card-purple-label__text">보라색</span>
+    </div>
+
+    <!-- 보라색 카드 안 아이콘용 원 + 블록 정중앙 화살표 아이콘 -->
+    <div class="color-card-purple-icon">
+      <svg
+        class="color-card-purple-arrow"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+        />
+      </svg>
+    </div>
+
+    <!-- 일곱 번째 색상 카드 - 검은색 (X:1636, Y:1733, W:256, H:337, radius:15, fill:#000000) -->
+    <div class="color-card-black"></div>
+
+    <!-- 검은색 카드 라벨 텍스트 '더 알아보기' (X:1653, Y:1756, W:145, H:36, Inter Bold 30, #FFFFFF) -->
+    <div class="color-card-black-label">
+      <span class="color-card-black-label__text">더 알아보기</span>
+    </div>
+
+    <!-- 검은색 카드 안 아이콘용 원 + 블록 정중앙 화살표 아이콘 -->
+    <div class="color-card-black-icon">
+      <svg
+        class="color-card-black-arrow"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+        />
+      </svg>
+    </div>
+
+    <!-- '겨울 특가 상품 구경하기' 텍스트 (X:40, Y:2233, W:297, H:36, Inter Bold 30, #000000) -->
+    <div class="winter-special-heading">
+      <span class="winter-special-heading__text">겨울 특가 상품 구경하기</span>
+    </div>
+
+    <!-- 겨울 특가 상품 카드 배경 직사각형 (X:40, Y:2305, W:240, H:305, fill:#D9D9D9) -->
+    <div class="winter-special-card"></div>
+
+    <!-- 빨간색 카드 라벨 텍스트 (X:57, Y:1756, W:83, H:36, Inter Bold 30, #000000) -->
+    <div class="color-card-red-label">
+      <span class="color-card-red-label__text">빨간색</span>
+    </div>
+
+    <!-- 빨간색 카드 안 아이콘용 직사각형 + 중앙 화살표 아이콘 -->
+    <div class="color-card-red-icon">
+      <svg
+        class="color-card-red-arrow"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        stroke-width="1.5"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+        />
+      </svg>
+    </div>
   </div>
 </template>
 
@@ -341,6 +628,629 @@
     1px 0 0 #000000,
     0 -1px 0 #000000,
     0 1px 0 #000000;
+}
+
+.all-products-pill {
+  position: absolute;
+  left: 1047px;
+  top: 29px;
+  width: 128px;
+  height: 69px;
+  background-color: #ede9e9;
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 16px;
+  gap: 6px;
+}
+
+.all-products-pill__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 100; /* Thin */
+  font-size: 16px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.all-products-pill__icon {
+  width: 18px;
+  height: 18px;
+  color: #000000;
+}
+
+.all-products-bar {
+  position: absolute;
+  left: 1047px;
+  top: 29px;
+  width: 542px;
+  height: 69px;
+  background-color: #d9d9d9;
+  border-radius: 50px;
+}
+
+.search-placeholder {
+  position: absolute;
+  left: 1190px;
+  top: 29px;
+  width: 180px;
+  height: 69px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  z-index: 2;
+  cursor: text;
+}
+
+.search-placeholder__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 100; /* Thin */
+  font-size: 25px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #a39191;
+  white-space: nowrap;
+}
+
+.search-placeholder__icon {
+  width: 24px;
+  height: 24px;
+  color: #5b4a4a;
+}
+
+.search-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 100; /* Thin */
+  font-size: 25px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+}
+
+.top-rect {
+  position: absolute;
+  left: 1622px;
+  top: 41px;
+  width: 118px;
+  height: 45px;
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 50px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.top-rect__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.top-rect--black {
+  position: absolute;
+  left: 1774px;
+  top: 41px;
+  width: 118px;
+  height: 45px;
+  background-color: #000000;
+  border: 1px solid #000000;
+  border-radius: 50px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.top-rect--black__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+
+.winter-heading {
+  position: absolute;
+  left: 38px;
+  top: 403px;
+  width: 353px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.winter-heading__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.winter-rect-left {
+  position: absolute;
+  left: 40px;
+  top: 468px;
+  width: 1211px;
+  height: 1113px;
+  border-radius: 15px;
+  background-color: #ede9e9;
+}
+
+.winter-rect-right {
+  position: absolute;
+  left: 1221px;
+  top: 468px;
+  width: 671px;
+  height: 1113px;
+  border-radius: 15px;
+  background-color: #d9d9d9;
+}
+
+.color-heading {
+  position: absolute;
+  left: 40px;
+  top: 1671px;
+  width: 201px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.color-heading__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.winter-special-heading {
+  position: absolute;
+  left: 40px;
+  top: 2233px;
+  width: 297px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.winter-special-heading__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.winter-special-card {
+  position: absolute;
+  left: 40px;
+  top: 2305px;
+  width: 240px;
+  height: 305px;
+  background-color: #d9d9d9;
+}
+
+.color-card-red {
+  position: absolute;
+  left: 40px;
+  top: 1733px;
+  width: 256px;
+  height: 337px;
+  border-radius: 15px;
+  background-color: #e25050;
+}
+
+.color-card-red-label {
+  position: absolute;
+  left: 57px;
+  top: 1756px;
+  width: 83px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.color-card-red-label__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.color-card-red-icon {
+  position: absolute;
+  left: 57px;
+  top: 1997px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50px;
+  background-color: #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-card-red-arrow {
+  width: 24px;
+  height: 24px;
+  color: #000000;
+}
+
+.color-card-orange {
+  position: absolute;
+  left: 307px;
+  top: 1733px;
+  width: 256px;
+  height: 337px;
+  border-radius: 15px;
+  background-color: #f58f00;
+}
+
+.color-card-orange-icon {
+  position: absolute;
+  left: 327px;
+  top: 1997px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50px;
+  background-color: #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-card-orange-arrow {
+  width: 24px;
+  height: 24px;
+  color: #000000;
+}
+
+.color-card-yellow {
+  position: absolute;
+  left: 574px;
+  top: 1733px;
+  width: 256px;
+  height: 337px;
+  border-radius: 15px;
+  background-color: #e4eb19;
+}
+
+.color-card-yellow-label {
+  position: absolute;
+  left: 597px;
+  top: 1756px;
+  width: 83px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.color-card-yellow-label__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.color-card-yellow-icon {
+  position: absolute;
+  left: 597px;
+  top: 1997px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50px;
+  background-color: #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-card-green {
+  position: absolute;
+  left: 841px;
+  top: 1733px;
+  width: 256px;
+  height: 337px;
+  border-radius: 15px;
+  background-color: #12b543;
+}
+
+.color-card-green-label {
+  position: absolute;
+  left: 861px;
+  top: 1756px;
+  width: 83px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.color-card-green-label__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.color-card-green-icon {
+  position: absolute;
+  left: 861px;
+  top: 1997px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50px;
+  background-color: #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-card-green-arrow {
+  width: 24px;
+  height: 24px;
+  color: #000000;
+}
+
+.color-card-blue {
+  position: absolute;
+  left: 1105px;
+  top: 1733px;
+  width: 256px;
+  height: 337px;
+  border-radius: 15px;
+  background-color: #0014f5;
+}
+
+.color-card-blue-icon {
+  position: absolute;
+  left: 1125px;
+  top: 1997px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50px;
+  background-color: #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-card-blue-arrow {
+  width: 24px;
+  height: 24px;
+  color: #000000;
+}
+
+.color-card-blue-label {
+  position: absolute;
+  left: 1125px;
+  top: 1756px;
+  width: 83px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.color-card-blue-label__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.color-card-purple {
+  position: absolute;
+  left: 1372px;
+  top: 1733px;
+  width: 256px;
+  height: 337px;
+  border-radius: 15px;
+  background-color: #7632d5;
+}
+
+.color-card-purple-icon {
+  position: absolute;
+  left: 1389px;
+  top: 1997px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50px;
+  background-color: #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-card-purple-arrow {
+  width: 24px;
+  height: 24px;
+  color: #000000;
+}
+
+.color-card-purple-label {
+  position: absolute;
+  left: 1389px;
+  top: 1756px;
+  width: 83px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.color-card-purple-label__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+.color-card-black {
+  position: absolute;
+  left: 1636px;
+  top: 1733px;
+  width: 256px;
+  height: 337px;
+  border-radius: 15px;
+  background-color: #000000;
+}
+
+.color-card-black-label {
+  position: absolute;
+  left: 1653px;
+  top: 1756px;
+  width: 145px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.color-card-black-label__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.color-card-black-icon {
+  position: absolute;
+  left: 1653px;
+  top: 1997px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50px;
+  background-color: #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-card-black-arrow {
+  width: 24px;
+  height: 24px;
+  color: #000000;
+}
+
+.color-card-blue {
+  position: absolute;
+  left: 1105px;
+  top: 1733px;
+  width: 256px;
+  height: 337px;
+  border-radius: 15px;
+  background-color: #0014f5;
+}
+
+.color-card-blue-icon {
+  position: absolute;
+  left: 1125px;
+  top: 1997px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50px;
+  background-color: #d9d9d9;
+}
+
+.color-card-blue {
+  position: absolute;
+  left: 1105px;
+  top: 1733px;
+  width: 256px;
+  height: 337px;
+  border-radius: 15px;
+  background-color: #0014f5;
+}
+
+.color-card-yellow-arrow {
+  width: 24px;
+  height: 24px;
+  color: #000000;
+}
+
+.color-card-orange-label {
+  position: absolute;
+  left: 327px;
+  top: 1756px;
+  width: 83px;
+  height: 36px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+.color-card-orange-label__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
 }
 
 .single-category-icon {
@@ -917,7 +1827,7 @@
 
 .rect-block--tenth {
   position: absolute;
-  left: 1705px;
+  left: 1770px;
   top: 189px;
   width: 69px;
   height: 69px;
