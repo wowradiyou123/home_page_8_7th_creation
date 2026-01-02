@@ -55,6 +55,7 @@ const BOTTOM_INTERIOR_PAUSE_MS = 1800
 let bottomFooterAutoScrollId: number | null = null
 let bottomFinalAutoScrollId: number | null = null
 let bottomInteriorAutoScrollId: number | null = null
+let bottomInteriorDebugLogged = false
 
 const scrollHorizontally = (event: WheelEvent, el: HTMLElement | null) => {
   if (!el) return
@@ -182,21 +183,44 @@ const startBottomInteriorAutoScroll = () => {
 
   const step = () => {
     const el = bottomInteriorScrollRef.value
+
     if (el && !isBottomInteriorHovered.value) {
       const now = performance.now()
       // 최근 사용자 조작 이후 일정 시간 동안은 자동 스크롤 일시 정지
       if (now - bottomInteriorLastInteraction.value > BOTTOM_INTERIOR_PAUSE_MS) {
-        const maxScroll = el.scrollWidth - el.clientWidth
+        const scrollWidth = el.scrollWidth
+        const clientWidth = el.clientWidth
+        const maxScroll = scrollWidth - clientWidth
+
+        // 한 번만 디버그 로그 출력해서 실제 스크롤 가능 여부 확인
+        if (!bottomInteriorDebugLogged) {
+          // eslint-disable-next-line no-console
+          console.log('[bottom-interior-scroll]', {
+            scrollWidth,
+            clientWidth,
+            maxScroll,
+            scrollLeft: el.scrollLeft,
+          })
+          bottomInteriorDebugLogged = true
+        }
+
+        // 카드 폭/개수/overflow 설정이 충분해서 실제로 가로 오버플로우가 있을 때만 자동 스크롤
         if (maxScroll > 0) {
+          // 카드를 두 번 배치한 트랙을 부드럽게 순환하기 위해,
+          // 전체 scrollWidth의 절반을 기준으로 루프를 돌린다.
+          const loopWidth = scrollWidth / 2
           const speed = 0.3 // 프리미엄 톤을 위한 매우 느린 속도
-          if (el.scrollLeft >= maxScroll - 1) {
-            el.scrollLeft = 0
-          } else {
-            el.scrollLeft += speed
+
+          el.scrollLeft += speed
+
+          // 절반 지점을 넘어서면 loopWidth 만큼 되돌려 자연스럽게 반복
+          if (el.scrollLeft >= loopWidth) {
+            el.scrollLeft -= loopWidth
           }
         }
       }
     }
+
     const id = requestAnimationFrame(step)
     bottomInteriorAutoScrollId = id
   }
@@ -212,13 +236,6 @@ const stopAutoScroll = (id: number | null, setId: (id: number | null) => void) =
 }
 
 onMounted(() => {
-  startAutoScroll(
-    () => bottomFooterScrollRef.value,
-    () => isBottomFooterHovered.value,
-    id => (bottomFooterAutoScrollId = id),
-    0.25
-  )
-
   startAutoScroll(
     () => bottomFinalScrollRef.value,
     () => isBottomFinalHovered.value,
@@ -326,97 +343,96 @@ onUnmounted(() => {
       <span class="top-rect--black__text">로그인</span>
     </div>
 
+  <!-- Category items: icon + label (원 + 텍스트를 하나의 인터랙션 단위로 묶음) -->
+  <div class="category-item category-item--1" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">신제품</span>
+  </div>
 
-    <!-- Category items: icon + label (원 + 텍스트를 하나의 인터랙션 단위로 묶음) -->
-    <div class="category-item category-item--1" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">신제품</span>
-    </div>
+  <div class="category-item category-item--2" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">겨울 이벤트</span>
+  </div>
 
-    <div class="category-item category-item--2" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">겨울 이벤트</span>
-    </div>
+  <div class="category-item category-item--3" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">수납 가구</span>
+  </div>
 
-    <div class="category-item category-item--3" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">수납 가구</span>
-    </div>
+  <div class="category-item category-item--4" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">수납 용품</span>
+  </div>
 
-    <div class="category-item category-item--4" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">수납 용품</span>
-    </div>
+  <div class="category-item category-item--5" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">침대 / 매트리스</span>
+  </div>
 
-    <div class="category-item category-item--5" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">침대 / 매트리스</span>
-    </div>
+  <div class="category-item category-item--6" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">소파 / 암체어</span>
+  </div>
 
-    <div class="category-item category-item--6" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">소파 / 암체어</span>
-    </div>
+  <div class="category-item category-item--7" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">식탁 / 테이블 / 의자</span>
+  </div>
 
-    <div class="category-item category-item--7" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">식탁 / 테이블 / 의자</span>
-    </div>
+  <div class="category-item category-item--8" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">책상/사무용의자</span>
+  </div>
 
-    <div class="category-item category-item--8" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">책상/사무용의자</span>
-    </div>
+  <div class="category-item category-item--9" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">주방가구</span>
+  </div>
 
-    <div class="category-item category-item--9" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">주방가구</span>
-    </div>
+  <div class="category-item category-item--10" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">주방 용품</span>
+  </div>
 
-    <div class="category-item category-item--10" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">주방 용품</span>
-    </div>
+  <div class="category-item category-item--11" tabindex="0">
+    <div class="category-item__icon"></div>
+    <span class="category-item__label">조명</span>
+  </div>
 
-    <div class="category-item category-item--11" tabindex="0">
-      <div class="category-item__icon"></div>
-      <span class="category-item__label">조명</span>
-    </div>
+  <!-- Separator line next to the first icon (X:137, Y:189, H:107, #EDE9E9) -->
+  <div class="single-category-line"></div>
 
-    <!-- Separator line next to the first icon (X:137, Y:189, H:107, #EDE9E9) -->
-    <div class="single-category-line"></div>
+  <!-- Separator line between first and second icons (X:292, Y:189, H:107, #EDE9E9) -->
+  <div class="second-category-line"></div>
 
-    <!-- Separator line between first and second icons (X:292, Y:189, H:107, #EDE9E9) -->
-    <div class="second-category-line"></div>
+  <!-- Separator line to the right of third icon (X:441, Y:189, H:107, #EDE9E9) -->
+  <div class="third-category-line"></div>
 
-    <!-- Separator line to the right of third icon (X:441, Y:189, H:107, #EDE9E9) -->
-    <div class="third-category-line"></div>
+  <!-- Separator line to the right of fourth icon (X:594, Y:189, H:107, #EDE9E9) -->
+  <div class="fourth-category-line"></div>
 
-    <!-- Separator line to the right of fourth icon (X:594, Y:189, H:107, #EDE9E9) -->
-    <div class="fourth-category-line"></div>
+  <!-- Separator line to the right of fifth icon (X:789, Y:189, H:107, #EDE9E9) -->
+  <div class="fifth-category-line"></div>
 
-    <!-- Separator line to the right of fifth icon (X:789, Y:189, H:107, #EDE9E9) -->
-    <div class="fifth-category-line"></div>
+  <!-- Separator line to the right of sixth icon (X:988, Y:189, H:107, #EDE9E9) -->
+  <div class="sixth-category-line"></div>
 
-    <!-- Separator line to the right of sixth icon (X:988, Y:189, H:107, #EDE9E9) -->
-    <div class="sixth-category-line"></div>
+  <!-- Separator line to the right of seventh icon (X:1206, Y:189, H:107, #EDE9E9) -->
+  <div class="seventh-category-line"></div>
 
-    <!-- Separator line to the right of seventh icon (X:1206, Y:189, H:107, #EDE9E9) -->
-    <div class="seventh-category-line"></div>
+  <!-- Separator line to the right of eighth icon (X:1408, Y:189, H:107, #EDE9E9) -->
+  <div class="eighth-category-line"></div>
 
-    <!-- Separator line to the right of eighth icon (X:1408, Y:189, H:107, #EDE9E9) -->
-    <div class="eighth-category-line"></div>
+  <!-- Separator line to the right of ninth icon (X:1573, Y:189, H:107, #EDE9E9) -->
+  <div class="ninth-category-line"></div>
 
-    <!-- Separator line to the right of ninth icon (X:1573, Y:189, H:107, #EDE9E9) -->
-    <div class="ninth-category-line"></div>
+  <!-- Separator line to the right of tenth icon (X:1719, Y:189, H:107, #EDE9E9) -->
+  <div class="tenth-category-line"></div>
 
-    <!-- Separator line to the right of tenth icon (X:1719, Y:189, H:107, #EDE9E9) -->
-    <div class="tenth-category-line"></div>
+  <!-- 기존 개별 텍스트/아이콘 div는 category-item 안으로 통합됨 -->
 
-    <!-- 기존 개별 텍스트/아이콘 div는 category-item 안으로 통합됨 -->
-
-    <!-- Top navigation + divider grouped in same grid container -->
-    <div class="nav-wrapper">
+  <!-- Top navigation + divider grouped in same grid container -->
+  <div class="nav-wrapper">
       <!-- Top navigation menu: horizontal flex row -->
       <nav class="nav-menu">
         <span class="nav-item nav-item--label">카테고리</span>
@@ -442,165 +458,165 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Category section: horizontal scroll area -->
-    <section class="category-section">
-      <div class="category-scroll">
-        <!-- Rectangle block
-             position: (40, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
-        <div class="rect-block"></div>
+  <!-- Category section: horizontal scroll area -->
+  <section class="category-section">
+    <div class="category-scroll">
+      <!-- Rectangle block
+           position: (40, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
+      <div class="rect-block"></div>
 
-        <!-- Second vector block
-             position: (225, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
-        <div class="rect-block--vector"></div>
+      <!-- Second vector block
+           position: (225, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
+      <div class="rect-block--vector"></div>
 
-        <!-- Third block
-             position: (410, 189), size: (69 x 69), radius: 59, fill: #D9D9D9 -->
-        <div class="rect-block--third"></div>
+      <!-- Third block
+           position: (410, 189), size: (69 x 69), radius: 59, fill: #D9D9D9 -->
+      <div class="rect-block--third"></div>
 
-        <!-- Fourth block
-             position: (595, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
-        <div class="rect-block--fourth"></div>
+      <!-- Fourth block
+           position: (595, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
+      <div class="rect-block--fourth"></div>
 
-        <!-- Fifth block
-             position: (780, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
-        <div class="rect-block--fifth"></div>
+      <!-- Fifth block
+           position: (780, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
+      <div class="rect-block--fifth"></div>
 
-        <!-- Sixth block
-             position: (965, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
-        <div class="rect-block--sixth"></div>
+      <!-- Sixth block
+           position: (965, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
+      <div class="rect-block--sixth"></div>
 
-        <!-- Seventh block
-             position: (1150, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
-        <div class="rect-block--seventh"></div>
+      <!-- Seventh block
+           position: (1150, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
+      <div class="rect-block--seventh"></div>
 
-        <!-- Eighth block
-             position: (1335, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
-        <div class="rect-block--eighth"></div>
+      <!-- Eighth block
+           position: (1335, 189), size: (69 x 69), radius: 50, fill: #D9D9D9 -->
+      <div class="rect-block--eighth"></div>
 
-        <!-- Ninth block
-             position: (1520, 189), size: (69 x 69), radius: 50, fill: #EDE9E9 -->
-        <div class="rect-block--ninth"></div>
+      <!-- Ninth block
+           position: (1520, 189), size: (69 x 69), radius: 50, fill: #EDE9E9 -->
+      <div class="rect-block--ninth"></div>
 
-        <!-- Tenth block
-             position: (1770, 189), size: (69 x 69), radius: 50, fill: #EDE9E9 -->
-        <div class="rect-block--tenth"></div>
+      <!-- Tenth block
+           position: (1770, 189), size: (69 x 69), radius: 50, fill: #EDE9E9 -->
+      <div class="rect-block--tenth"></div>
 
-        <!-- Label text under rectangle: '신제품'
-             position: (40, 266), size: (69 x 30)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label">
-          <span class="rect-label__inner">신제품</span>
-        </div>
-
-        <!-- Text under second block: '겨울 이벤트'
-             position: (163, 266), size: (192 x 60)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label rect-label--event">
-          <span class="rect-label__inner rect-label__inner--event">
-            겨울 이벤트
-          </span>
-        </div>
-
-        <!-- Text under third block: '수납 가구'
-             position: (395, 266), size: (100 x 30)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label rect-label--storage">
-          <span class="rect-label__inner">수납 가구</span>
-        </div>
-
-        <!-- Text under fourth block: '침대 / 매트리스'
-             position: (734, 266), size: (161 x 30)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label rect-label--bed">
-          <span class="rect-label__inner">침대 / 매트리스</span>
-        </div>
-
-        <!-- Text between third and fourth blocks: '수납 용품'
-             position: (578, 266), size: (103 x 41)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label rect-label--storage-items">
-          <span class="rect-label__inner">수납 용품</span>
-        </div>
-
-        <!-- Text under sixth block: '소파 / 암체어'
-             position: (931, 266), size: (138 x 30)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label rect-label--sofa">
-          <span class="rect-label__inner">소파 / 암체어</span>
-        </div>
-
-        <!-- Text under seventh block: '식탁/테이블/의자'
-             position: (1096, 266), size: (178 x 30)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label rect-label--dining">
-          <span class="rect-label__inner">식탁/테이블/의자</span>
-        </div>
-
-        <!-- Text under eighth block: '책상/사무용의자'
-             position: (1285, 266), size: (170 x 30)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label rect-label--desk">
-          <span class="rect-label__inner">책상/사무용의자</span>
-        </div>
-
-        <!-- Text under ninth block: '주방가구'
-             position: (1509, 266), size: (92 x 30)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label rect-label--kitchen">
-          <span class="rect-label__inner">주방가구</span>
-        </div>
-
-        <!-- Text under tenth block: '주방 용품'
-             position: (1694, 266), size: (92 x 30)
-             font: Inter, Thin, 25px, #000000 -->
-        <div class="rect-label rect-label--kitchen-items">
-          <span class="rect-label__inner">주방 용품</span>
-        </div>
-
-        <!-- Vertical line between category icons (1)
-             Figma line: position (137, 189), length 107, rotation -90°, stroke #EDE9E9 -->
-        <div class="category-line"></div>
-
-        <!-- Vertical line between category icons (2)
-             Figma line: position (374, 189), length 107, rotation -90°, stroke #EDE9E9 -->
-        <div class="category-line category-line--2"></div>
-
-        <!-- Vertical line between category icons (3)
-             Figma line: position (537, 189), length 107, rotation 90°, stroke #EDE9E9 -->
-        <div class="category-line category-line--3"></div>
-
-        <!-- Vertical line between category icons (4)
-             Figma line: position (710, 189), length 107, rotation 90°, stroke #EDE9E9 -->
-        <div class="category-line category-line--4"></div>
-
-        <!-- Vertical line between category icons (5)
-             Figma line: position (1082, 189), length 107, rotation -90°, stroke #EDE9E9 -->
-        <div class="category-line category-line--5"></div>
-
-        <!-- Vertical line between category icons (6)
-             Figma line: position (1280, 189), length 107, rotation 90°, stroke #EDE9E9 -->
-        <div class="category-line category-line--6"></div>
-
-        <!-- Vertical line between category icons (7)
-             Figma line: position (1476, 189), length 107, rotation 90°, stroke #EDE9E9 -->
-        <div class="category-line category-line--7"></div>
-
-        <!-- Vertical line between category icons (8)
-             Figma line: position (1649, 189), length 107, rotation 90°, stroke #EDE9E9 -->
-        <div class="category-line category-line--8"></div>
-
-        <!-- Vertical line between category icons (9)
-             Figma line: position (1829, 182), length 107, rotation 90°, stroke #EDE9E9 -->
-        <div class="category-line category-line--9"></div>
-
-        <!-- Vertical line between category icons (10)
-             Figma line: position (913, 189), length 107, rotation -90°, stroke #EDE9E9 -->
-        <div class="category-line category-line--10"></div>
+      <!-- Label text under rectangle: '신제품'
+           position: (40, 266), size: (69 x 30)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label">
+        <span class="rect-label__inner">신제품</span>
       </div>
-    </section>
 
-    <!-- 'LATENT 겨울 이벤트' heading text (X:38, Y:403, W:353, H:36) -->
-    <div class="winter-heading">
+      <!-- Text under second block: '겨울 이벤트'
+           position: (163, 266), size: (192 x 60)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label rect-label--event">
+        <span class="rect-label__inner rect-label__inner--event">
+          겨울 이벤트
+        </span>
+      </div>
+
+      <!-- Text under third block: '수납 가구'
+           position: (395, 266), size: (100 x 30)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label rect-label--storage">
+        <span class="rect-label__inner">수납 가구</span>
+      </div>
+
+      <!-- Text under fourth block: '침대 / 매트리스'
+           position: (734, 266), size: (161 x 30)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label rect-label--bed">
+        <span class="rect-label__inner">침대 / 매트리스</span>
+      </div>
+
+      <!-- Text between third and fourth blocks: '수납 용품'
+           position: (578, 266), size: (103 x 41)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label rect-label--storage-items">
+        <span class="rect-label__inner">수납 용품</span>
+      </div>
+
+      <!-- Text under sixth block: '소파 / 암체어'
+           position: (931, 266), size: (138 x 30)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label rect-label--sofa">
+        <span class="rect-label__inner">소파 / 암체어</span>
+      </div>
+
+      <!-- Text under seventh block: '식탁/테이블/의자'
+           position: (1096, 266), size: (178 x 30)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label rect-label--dining">
+        <span class="rect-label__inner">식탁/테이블/의자</span>
+      </div>
+
+      <!-- Text under eighth block: '책상/사무용의자'
+           position: (1285, 266), size: (170 x 30)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label rect-label--desk">
+        <span class="rect-label__inner">책상/사무용의자</span>
+      </div>
+
+      <!-- Text under ninth block: '주방가구'
+           position: (1509, 266), size: (92 x 30)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label rect-label--kitchen">
+        <span class="rect-label__inner">주방가구</span>
+      </div>
+
+      <!-- Text under tenth block: '주방 용품'
+           position: (1694, 266), size: (92 x 30)
+           font: Inter, Thin, 25px, #000000 -->
+      <div class="rect-label rect-label--kitchen-items">
+        <span class="rect-label__inner">주방 용품</span>
+      </div>
+
+      <!-- Vertical line between category icons (1)
+           Figma line: position (137, 189), length 107, rotation -90°, stroke #EDE9E9 -->
+      <div class="category-line"></div>
+
+      <!-- Vertical line between category icons (2)
+           Figma line: position (374, 189), length 107, rotation -90°, stroke #EDE9E9 -->
+      <div class="category-line category-line--2"></div>
+
+      <!-- Vertical line between category icons (3)
+           Figma line: position (537, 189), length 107, rotation 90°, stroke #EDE9E9 -->
+      <div class="category-line category-line--3"></div>
+
+      <!-- Vertical line between category icons (4)
+           Figma line: position (710, 189), length 107, rotation 90°, stroke #EDE9E9 -->
+      <div class="category-line category-line--4"></div>
+
+      <!-- Vertical line between category icons (5)
+           Figma line: position (1082, 189), length 107, rotation -90°, stroke #EDE9E9 -->
+      <div class="category-line category-line--5"></div>
+
+      <!-- Vertical line between category icons (6)
+           Figma line: position (1280, 189), length 107, rotation 90°, stroke #EDE9E9 -->
+      <div class="category-line category-line--6"></div>
+
+      <!-- Vertical line between category icons (7)
+           Figma line: position (1476, 189), length 107, rotation 90°, stroke #EDE9E9 -->
+      <div class="category-line category-line--7"></div>
+
+      <!-- Vertical line between category icons (8)
+           Figma line: position (1649, 189), length 107, rotation 90°, stroke #EDE9E9 -->
+      <div class="category-line category-line--8"></div>
+
+      <!-- Vertical line between category icons (9)
+           Figma line: position (1829, 182), length 107, rotation 90°, stroke #EDE9E9 -->
+      <div class="category-line category-line--9"></div>
+
+      <!-- Vertical line between category icons (10)
+           Figma line: position (913, 189), length 107, rotation -90°, stroke #EDE9E9 -->
+      <div class="category-line category-line--10"></div>
+    </div>
+  </section>
+
+  <!-- 'LATENT 겨울 이벤트' heading text (X:38, Y:403, W:353, H:36) -->
+  <div class="winter-heading">
       <span class="winter-heading__text">LATENT 겨울 이벤트</span>
     </div>
 
@@ -1135,11 +1151,21 @@ onUnmounted(() => {
       @mousedown="markBottomInteriorInteraction"
       @touchstart="markBottomInteriorInteraction"
     >
-      <div
-        v-for="card in 6"
-        :key="card"
-        class="bottom-final-large-card"
-      ></div>
+      <div class="bottom-interior-track">
+        <!-- 기본 카드 세트 -->
+        <div
+          v-for="card in 6"
+          :key="`set-a-${card}`"
+          class="bottom-final-large-card"
+        ></div>
+        <!-- 끊김 없는 루프를 위한 복제 카드 세트 (aria-hidden) -->
+        <div
+          v-for="card in 6"
+          :key="`set-b-${card}`"
+          class="bottom-final-large-card bottom-final-large-card--clone"
+          aria-hidden="true"
+        ></div>
+      </div>
     </div>
 
     <!-- Living Room 텍스트 (X:41, Y:8355, W:301, H:83, Gotu Regular 50, #000000) -->
@@ -1283,10 +1309,30 @@ onUnmounted(() => {
       @wheel.prevent="handleBottomLastWheel"
     >
       <div
-        v-for="card in 10"
+        v-for="card in 9"
         :key="card"
         class="bottom-last-card"
       ></div>
+      <!-- 스크롤 맨 끝 CTA 카드 -->
+      <button class="bottom-last-card bottom-last-card--cta" type="button">
+        <span class="bottom-last-cta__text">더 많은 혜택 보러가기</span>
+        <span class="bottom-last-cta__icon-wrap">
+          <svg
+            class="bottom-last-cta__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
     </section>
 
     <!-- 페이지 최하단 추가 큰 패널 (X:-2, Y:14669, W:1927, H:1055, radius:10, fill:#D9D9D9) -->
@@ -2294,10 +2340,7 @@ onUnmounted(() => {
   top: 7302px;
   width: calc(100% - 82px);
   height: 907px;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  gap: 24px;
+  display: block;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -2308,6 +2351,13 @@ onUnmounted(() => {
 
 .bottom-interior-scroll::-webkit-scrollbar {
   display: none;
+}
+
+.bottom-interior-track {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 24px;
 }
 
 .bottom-final-large-card {
@@ -2701,6 +2751,55 @@ onUnmounted(() => {
   background-color: #d9d9d9;
 }
 
+.bottom-last-card--cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border: none;
+  padding: 32px 24px;
+  background-color: #d9d9d9;
+  cursor: pointer;
+}
+
+.bottom-last-cta__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-size: 26px;
+  line-height: 1.3;
+  font-weight: 500;
+  color: #111111;
+  text-align: center;
+  white-space: normal;
+}
+
+.bottom-last-cta__icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-last-cta__icon {
+  width: 28px;
+  height: 28px;
+  color: #111111;
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.bottom-last-card--cta:hover .bottom-last-cta__text,
+.bottom-last-card--cta:focus-visible .bottom-last-cta__text {
+  color: #000000;
+}
+
+.bottom-last-card--cta:hover .bottom-last-cta__icon,
+.bottom-last-card--cta:focus-visible .bottom-last-cta__icon {
+  color: #000000;
+  transform: translateY(-2px);
+}
+
 .bottom-last-scroll {
   position: absolute;
   left: 39px;
@@ -2754,11 +2853,11 @@ onUnmounted(() => {
 .category-item--4  { left: 462px; }
 .category-item--5  { left: 607px; }
 .category-item--6  { left: 816px; }
-.category-item--7  { left: 1061px; }
-.category-item--8  { left: 1270px; }
-.category-item--9  { left: 1454px; }
-.category-item--10 { left: 1612px; }
-.category-item--11 { left: 1770px; }
+.category-item--7  { left: 987px; }
+.category-item--8  { left: 1215px; }
+.category-item--9  { left: 1443px; }
+.category-item--10 { left: 1595px; }
+.category-item--11 { left: 1755px; }
 
 .category-item__icon {
   width: 69px;
