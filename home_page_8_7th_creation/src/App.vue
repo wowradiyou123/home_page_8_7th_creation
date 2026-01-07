@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const isSearchActive = ref(false)
 const searchQuery = ref('')
@@ -18,18 +18,34 @@ const handleSearchBlur = () => {
 }
 
 const isAllProductsOpen = ref(false)
-const allProductsItems = [
+
+// '모든 제품' 포함 전체 옵션 목록
+const allProductsOptions = [
+  '모든 제품',
   '베스트',
   '제작 상품 보기',
   '인테리어 디자인 클래스',
   '전문가 찾기',
   '이벤트',
   '커뮤니티',
-  '문의'
+  '문의',
 ]
+
+// 현재 pill에 표시되는 레이블
+const selectedAllProductsLabel = ref<string>('모든 제품')
+
+// 드롭다운에 노출되는 항목: 현재 선택된 레이블을 제외한 나머지
+const allProductsItems = computed(() =>
+  allProductsOptions.filter(option => option !== selectedAllProductsLabel.value)
+)
 
 const toggleAllProducts = () => {
   isAllProductsOpen.value = !isAllProductsOpen.value
+}
+
+const handleAllProductsItemClick = (item: string) => {
+  selectedAllProductsLabel.value = item
+  isAllProductsOpen.value = false
 }
 
 const bottomFooterScrollRef = ref<HTMLElement | null>(null)
@@ -47,10 +63,6 @@ const bottomLastScrollRef = ref<HTMLElement | null>(null)
 const isBottomFooterHovered = ref(false)
 const isBottomFinalHovered = ref(false)
 const isBottomInteriorHovered = ref(false)
-
-// 인테리어 섹션: 최근 사용자 조작 시점 (ms)
-const bottomInteriorLastInteraction = ref(0)
-const BOTTOM_INTERIOR_PAUSE_MS = 1800
 
 let bottomFooterAutoScrollId: number | null = null
 let bottomFinalAutoScrollId: number | null = null
@@ -77,12 +89,7 @@ const handleBottomFinalWheel = (event: WheelEvent) => {
   scrollHorizontally(event, bottomFinalScrollRef.value)
 }
 
-const markBottomInteriorInteraction = () => {
-  bottomInteriorLastInteraction.value = performance.now()
-}
-
 const handleBottomInteriorWheel = (event: WheelEvent) => {
-  markBottomInteriorInteraction()
   scrollHorizontally(event, bottomInteriorScrollRef.value)
 }
 
@@ -112,6 +119,10 @@ const handleToiletWheel = (event: WheelEvent) => {
 
 const handleDressingroomWheel = (event: WheelEvent) => {
   scrollHorizontally(event, dressingroomScrollRef.value)
+}
+
+const goToCategory = (slug: string) => {
+  window.location.href = `/category/${slug}`
 }
 
 const handleBottomLastWheel = (event: WheelEvent) => {
@@ -185,38 +196,34 @@ const startBottomInteriorAutoScroll = () => {
     const el = bottomInteriorScrollRef.value
 
     if (el && !isBottomInteriorHovered.value) {
-      const now = performance.now()
-      // 최근 사용자 조작 이후 일정 시간 동안은 자동 스크롤 일시 정지
-      if (now - bottomInteriorLastInteraction.value > BOTTOM_INTERIOR_PAUSE_MS) {
-        const scrollWidth = el.scrollWidth
-        const clientWidth = el.clientWidth
-        const maxScroll = scrollWidth - clientWidth
+      const scrollWidth = el.scrollWidth
+      const clientWidth = el.clientWidth
+      const maxScroll = scrollWidth - clientWidth
 
-        // 한 번만 디버그 로그 출력해서 실제 스크롤 가능 여부 확인
-        if (!bottomInteriorDebugLogged) {
-          // eslint-disable-next-line no-console
-          console.log('[bottom-interior-scroll]', {
-            scrollWidth,
-            clientWidth,
-            maxScroll,
-            scrollLeft: el.scrollLeft,
-          })
-          bottomInteriorDebugLogged = true
-        }
+      // 한 번만 디버그 로그 출력해서 실제 스크롤 가능 여부 확인
+      if (!bottomInteriorDebugLogged) {
+        // eslint-disable-next-line no-console
+        console.log('[bottom-interior-scroll]', {
+          scrollWidth,
+          clientWidth,
+          maxScroll,
+          scrollLeft: el.scrollLeft,
+        })
+        bottomInteriorDebugLogged = true
+      }
 
-        // 카드 폭/개수/overflow 설정이 충분해서 실제로 가로 오버플로우가 있을 때만 자동 스크롤
-        if (maxScroll > 0) {
-          // 카드를 두 번 배치한 트랙을 부드럽게 순환하기 위해,
-          // 전체 scrollWidth의 절반을 기준으로 루프를 돌린다.
-          const loopWidth = scrollWidth / 2
-          const speed = 0.3 // 프리미엄 톤을 위한 매우 느린 속도
+      // 카드 폭/개수/overflow 설정이 충분해서 실제로 가로 오버플로우가 있을 때만 자동 스크롤
+      if (maxScroll > 0) {
+        // 카드를 두 번 배치한 트랙을 부드럽게 순환하기 위해,
+        // 전체 scrollWidth의 절반을 기준으로 루프를 돌린다.
+        const loopWidth = scrollWidth / 2
+        const speed = 0.25 // 프리미엄 톤을 위한 매우 느린 속도
 
-          el.scrollLeft += speed
+        el.scrollLeft += speed
 
-          // 절반 지점을 넘어서면 loopWidth 만큼 되돌려 자연스럽게 반복
-          if (el.scrollLeft >= loopWidth) {
-            el.scrollLeft -= loopWidth
-          }
+        // 절반 지점을 넘어서면 loopWidth 만큼 되돌려 자연스럽게 반복
+        if (el.scrollLeft >= loopWidth) {
+          el.scrollLeft -= loopWidth
         }
       }
     }
@@ -256,92 +263,94 @@ onUnmounted(() => {
 
 <template>
   <div class="page">
-    <!-- Top-left text block from Figma
-         position: (38, 29), size: (131 x 69)
-         font: Space Mono, regular, 35px, #000000
-         stroke: 1px outside (#000000) -->
-    <div class="top-text">
-      <span class="top-text__inner">
-        LATENT
-      </span>
-    </div>
+    <header class="site-header">
+      <!-- Left: 브랜드 로고 -->
+      <div class="site-header__logo">
+        <div class="top-text">
+          <span class="top-text__inner">
+            LATENT
+          </span>
+        </div>
+      </div>
 
-    <!-- 상단 '모든 제품' 배경 바 (X:1047, Y:29, W:542, H:69, fill:#D9D9D9) -->
-    <div class="all-products-bar"></div>
+      <!-- Center: 카테고리 선택 + 검색 -->
+      <div class="site-header__center">
+        <!-- 상단 '모든 제품' 강조 직사각형 + 드롭다운 -->
+        <div class="all-products-wrapper">
+          <button class="all-products-pill" type="button" @click="toggleAllProducts">
+            <svg
+              class="all-products-pill__icon"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m19.5 8.25-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+            <span class="all-products-pill__text">{{ selectedAllProductsLabel }}</span>
+          </button>
 
-    <!-- 상단 '모든 제품' 강조 직사각형 + 드롭다운 -->
-    <div class="all-products-wrapper">
-      <button class="all-products-pill" type="button" @click="toggleAllProducts">
-        <svg
-          class="all-products-pill__icon"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m19.5 8.25-7.5 7.5-7.5-7.5"
+          <transition name="all-products-dropdown">
+            <ul
+              v-if="isAllProductsOpen"
+              class="all-products-dropdown"
+            >
+              <li
+                v-for="item in allProductsItems"
+                :key="item"
+                class="all-products-dropdown__item"
+                @click="handleAllProductsItemClick(item)"
+              >
+                {{ item }}
+              </li>
+            </ul>
+          </transition>
+        </div>
+
+        <!-- 상단 검색어 입력 placeholder / 검색바 (클릭 시 전환) -->
+        <div class="search-placeholder" @click="handleSearchClick">
+          <template v-if="!isSearchActive">
+            <svg
+              class="search-placeholder__icon"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+              />
+            </svg>
+            <span class="search-placeholder__text">검색어 입력</span>
+          </template>
+          <input
+            v-else
+            class="search-input"
+            type="text"
+            v-model="searchQuery"
+            @blur="handleSearchBlur"
           />
-        </svg>
-        <span class="all-products-pill__text">모든 제품</span>
-      </button>
+        </div>
+      </div>
 
-      <transition name="all-products-dropdown">
-        <ul
-          v-if="isAllProductsOpen"
-          class="all-products-dropdown"
-        >
-          <li
-            v-for="item in allProductsItems"
-            :key="item"
-            class="all-products-dropdown__item"
-          >
-            {{ item }}
-          </li>
-        </ul>
-      </transition>
-    </div>
-
-    <!-- 상단 검색어 입력 placeholder / 검색바 (클릭 시 전환) -->
-    <div class="search-placeholder" @click="handleSearchClick">
-      <template v-if="!isSearchActive">
-        <svg
-          class="search-placeholder__icon"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="2"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-          />
-        </svg>
-        <span class="search-placeholder__text">검색어 입력</span>
-      </template>
-      <input
-        v-else
-        class="search-input"
-        type="text"
-        v-model="searchQuery"
-        @blur="handleSearchBlur"
-      />
-    </div>
-
-    <!-- Figma 직사각형 + '회원가입' 텍스트 (X:1622, Y:41, W:118, H:45) -->
-    <div class="top-rect">
-      <span class="top-rect__text">회원가입</span>
-    </div>
-
-    <!-- Figma 검은 직사각형 + '로그인' 텍스트 (X:1774, Y:41, W:118, H:45) -->
-    <div class="top-rect--black">
-      <span class="top-rect--black__text">로그인</span>
-    </div>
+      <!-- Right: 회원가입 / 로그인 -->
+      <div class="site-header__auth">
+        <div class="top-rect">
+          <span class="top-rect__text">회원가입</span>
+        </div>
+        <div class="top-rect--black">
+          <span class="top-rect--black__text">로그인</span>
+        </div>
+      </div>
+    </header>
 
   <!-- Category items: icon + label (원 + 텍스트를 하나의 인터랙션 단위로 묶음) -->
   <div class="category-item category-item--1" tabindex="0">
@@ -626,6 +635,15 @@ onUnmounted(() => {
     <!-- 크리스마스 오른쪽 큰 직사각형 (X:1221, Y:468, W:671, H:1113, radius:15, fill:#D9D9D9) -->
     <div class="winter-rect-right"></div>
 
+  <!-- 겨울 이벤트 우측 텍스트 블록:
+       '회원 전용 최대 혜택' 및 상세 설명 -->
+  <div class="winter-benefit-text">
+    <p class="winter-benefit-text__title">회원 전용 최대 혜택</p>
+    <p class="winter-benefit-text__line">신상품 우선 구매 권한</p>
+    <p class="winter-benefit-text__line">배송·설치 비용 부담 없이</p>
+    <p class="winter-benefit-text__line">겨울 큐레이션 콘텐츠 제공</p>
+  </div>
+
     <!-- '색상별 인테리어' heading text (X:40, Y:1671, W:201, H:36) -->
     <div class="color-heading">
       <span class="color-heading__text">색상별 인테리어</span>
@@ -801,20 +819,52 @@ onUnmounted(() => {
     <!-- 두 번째 겨울 특가 상품 카드 배경 직사각형 (X:296, Y:2305, W:240, H:305, fill:#D9D9D9) -->
     <div class="winter-special-card winter-special-card--second"></div>
 
-    <!-- 세 번째 겨울 특가 상품 카드 배경 직사각형 (X:552, Y:2305, W:240, H:305, fill:#D9D9D9) -->
-    <div class="winter-special-card winter-special-card--third"></div>
+    <!-- 세 번째 겨울 특가 상품 카드 배경 직사각형 (침대 이미지 배경 적용) -->
+    <div
+      class="winter-special-card winter-special-card--third"
+      style="
+        background-image: url('/bed.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      "
+    ></div>
 
-    <!-- 네 번째 겨울 특가 상품 카드 배경 직사각형 (X:808, Y:2305, W:240, H:305, fill:#D9D9D9) -->
-    <div class="winter-special-card winter-special-card--fourth"></div>
+    <!-- 네 번째 겨울 특가 상품 카드 배경 직사각형 (시계 이미지 배경 적용) -->
+    <div
+      class="winter-special-card winter-special-card--fourth"
+      style="
+        background-image: url('/clock.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      "
+    ></div>
 
-    <!-- 다섯 번째 겨울 특가 상품 카드 배경 직사각형 (X:1064, Y:2305, W:240, H:305, fill:#D9D9D9) -->
-    <div class="winter-special-card winter-special-card--fifth"></div>
+    <!-- 다섯 번째 겨울 특가 상품 카드 배경 직사각형 (파스텔 세라믹 테이블웨어 세트 이미지 적용) -->
+    <div
+      class="winter-special-card winter-special-card--fifth"
+      style="
+        background-image: url('/테이블웨어세트.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      "
+    ></div>
 
     <!-- 여섯 번째 겨울 특가 상품 카드 배경 직사각형 (X:1320, Y:2305, W:240, H:305, fill:#D9D9D9) -->
     <div class="winter-special-card winter-special-card--sixth"></div>
 
-    <!-- 일곱 번째 겨울 특가 상품 카드 배경 직사각형 (X:1576, Y:2305, W:240, H:305, fill:#D9D9D9) -->
-    <div class="winter-special-card winter-special-card--seventh"></div>
+    <!-- 일곱 번째 겨울 특가 상품 카드 배경 직사각형 (빈티지 캔버스 런치박스 이미지 적용) -->
+    <div
+      class="winter-special-card winter-special-card--seventh"
+      style="
+        background-image: url('/런치박스.webp');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+      "
+    ></div>
 
     <!-- 겨울 특가 카드 안 텍스트 블록 (X:40, Y:2620, W:240, H:130) -->
     <div class="winter-special-card-text">
@@ -933,9 +983,9 @@ onUnmounted(() => {
 
     <!-- 우측 배너 멤버십 혜택 리스트 -->
     <div class="membership-benefit-list">
-      <p class="membership-benefit-list__item">✔ 회원 전용 상시 할인 &amp; 쿠폰</p>
-      <p class="membership-benefit-list__item">✔ 신상품·한정 컬렉션 우선 구매</p>
-      <p class="membership-benefit-list__item">✔ 프리미엄 배송·설치·AS 케어</p>
+      <p class="membership-benefit-list__item">회원 전용 상시 할인 &amp; 쿠폰</p>
+      <p class="membership-benefit-list__item">신상품·한정 컬렉션 우선 구매</p>
+      <p class="membership-benefit-list__item">프리미엄 배송·설치·AS 케어</p>
     </div>
 
     <!-- 우측 배너 CTA: 'LATENT 혜택 직접 이용해보기' + 아이콘 -->
@@ -1049,67 +1099,48 @@ onUnmounted(() => {
       </svg>
     </div>
 
-    <!-- 페이지 맨 아래 전체 배경 직사각형 (X:0, Y:4709, W:1929, H:633, fill:#F3F3F3) -->
-    <div class="bottom-footer-bg"></div>
-
-    <!-- 하단 카드 가로 스크롤 영역 (자동 스크롤 + hover 시 일시 정지) -->
-    <div
-      class="bottom-footer-scroll"
-      ref="bottomFooterScrollRef"
-      @wheel.prevent="handleBottomFooterWheel"
-      @mouseenter="handleBottomFooterMouseEnter"
-      @mouseleave="handleBottomFooterMouseLeave"
-    >
-      <!-- 스크롤 UX를 위해 6개의 카드 생성
-           맨 왼쪽 카드(첫 번째)만 내용 표시, 나머지는 비워서 빈 패널로 사용 -->
+    <!-- 하단 카드 섹션: 배경 + 카드 그리드를 하나의 래퍼로 감싼다 -->
+    <section class="bottom-footer-section">
+      <!-- 하단 카드 영역 (반응형 grid) -->
       <div
-        v-for="card in 6"
-        :key="card"
-        class="bottom-footer-card"
+        class="bottom-footer-scroll"
+        ref="bottomFooterScrollRef"
+        @wheel.prevent="handleBottomFooterWheel"
+        @mouseenter="handleBottomFooterMouseEnter"
+        @mouseleave="handleBottomFooterMouseLeave"
       >
-        <template v-if="card === 1">
-          <div class="bottom-footer-card__label">
-            모든 혜택 보러가기
-          </div>
-          <button class="bottom-footer-card__icon" type="button">
-            <svg
-              class="bottom-footer-card__icon-svg"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25"
-              />
-            </svg>
-          </button>
-        </template>
-      </div>
-    </div>
-
-    <!-- 최하단 대형 섹션 배경 직사각형 (X:41, Y:5463, W:1845, H:868, radius:15, fill:#D9D9D9) -->
-    <div class="bottom-large-panel">
-      <button class="bottom-large-panel__play" type="button">
-        <svg
-          class="bottom-large-panel__play-svg"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
+        <div
+          v-for="card in 6"
+          :key="card"
+          class="bottom-footer-card"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M8.25 4.5v15l11.25-7.5-11.25-7.5z"
-          />
-        </svg>
-      </button>
-    </div>
+          <div
+            v-if="card === 1"
+            class="bottom-footer-card__label"
+          >
+            멤버 전용 큐레이션
+          </div>
+          <div
+            v-else-if="card === 2"
+            class="bottom-footer-card__label"
+          >
+            멤버 전용 혜택가
+          </div>
+          <div
+            v-else-if="card === 3"
+            class="bottom-footer-card__label"
+          >
+            공간에 스며드는 선택
+          </div>
+          <div
+            v-else-if="card === 4"
+            class="bottom-footer-card__label"
+          >
+            멤버 전용 큐레이션
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- 페이지 최하단 배경 직사각형 (X:0, Y:6471, W:1929, H:616, fill:#F3F3F3) -->
     <div class="bottom-final-bg"></div>
@@ -1148,8 +1179,6 @@ onUnmounted(() => {
       @wheel.prevent="handleBottomInteriorWheel"
       @mouseenter="handleBottomInteriorMouseEnter"
       @mouseleave="handleBottomInteriorMouseLeave"
-      @mousedown="markBottomInteriorInteraction"
-      @touchstart="markBottomInteriorInteraction"
     >
       <div class="bottom-interior-track">
         <!-- 기본 카드 세트 -->
@@ -1158,6 +1187,7 @@ onUnmounted(() => {
           :key="`set-a-${card}`"
           class="bottom-final-large-card"
         ></div>
+
         <!-- 끊김 없는 루프를 위한 복제 카드 세트 (aria-hidden) -->
         <div
           v-for="card in 6"
@@ -1184,6 +1214,29 @@ onUnmounted(() => {
         :key="card"
         class="living-room-card"
       ></div>
+      <button
+        class="living-room-card scroll-cta-card"
+        type="button"
+        @click="goToCategory('living-room')"
+      >
+        <span class="scroll-cta-card__text">더 알아보기</span>
+        <span class="scroll-cta-card__icon-wrap">
+          <svg
+            class="scroll-cta-card__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
     </section>
 
     <!-- Kitchen 텍스트 (X:41, Y:9168, W:188, H:83, Gotu Regular 50, #000000) -->
@@ -1202,6 +1255,29 @@ onUnmounted(() => {
         :key="card"
         class="kitchen-card"
       ></div>
+      <button
+        class="kitchen-card scroll-cta-card"
+        type="button"
+        @click="goToCategory('kitchen')"
+      >
+        <span class="scroll-cta-card__text">더 알아보기</span>
+        <span class="scroll-cta-card__icon-wrap">
+          <svg
+            class="scroll-cta-card__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
     </section>
 
     <!-- Bedroom 텍스트 (X:41, Y:9936, W:237, H:83, Gotu Regular 50, #000000) -->
@@ -1220,6 +1296,29 @@ onUnmounted(() => {
         :key="card"
         class="bedroom-card"
       ></div>
+      <button
+        class="bedroom-card scroll-cta-card"
+        type="button"
+        @click="goToCategory('bedroom')"
+      >
+        <span class="scroll-cta-card__text">더 알아보기</span>
+        <span class="scroll-cta-card__icon-wrap">
+          <svg
+            class="scroll-cta-card__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
     </section>
 
     <!-- Porch 텍스트 (X:41, Y:10721, W:144, H:83, Gotu Regular 50, #000000) -->
@@ -1238,6 +1337,29 @@ onUnmounted(() => {
         :key="card"
         class="porch-card"
       ></div>
+      <button
+        class="porch-card scroll-cta-card"
+        type="button"
+        @click="goToCategory('porch')"
+      >
+        <span class="scroll-cta-card__text">더 알아보기</span>
+        <span class="scroll-cta-card__icon-wrap">
+          <svg
+            class="scroll-cta-card__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
     </section>
 
     <!-- Balcony 텍스트 (X:41, Y:11503, W:194, H:83, Gotu Regular 50, #000000) -->
@@ -1256,6 +1378,29 @@ onUnmounted(() => {
         :key="card"
         class="balcony-card"
       ></div>
+      <button
+        class="balcony-card scroll-cta-card"
+        type="button"
+        @click="goToCategory('balcony')"
+      >
+        <span class="scroll-cta-card__text">더 알아보기</span>
+        <span class="scroll-cta-card__icon-wrap">
+          <svg
+            class="scroll-cta-card__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
     </section>
 
     <!-- Toilet 텍스트 (X:41, Y:12287, W:134, H:83, Gotu Regular 50, #000000) -->
@@ -1274,11 +1419,34 @@ onUnmounted(() => {
         :key="card"
         class="toilet-card"
       ></div>
+      <button
+        class="toilet-card scroll-cta-card"
+        type="button"
+        @click="goToCategory('toilet')"
+      >
+        <span class="scroll-cta-card__text">더 알아보기</span>
+        <span class="scroll-cta-card__icon-wrap">
+          <svg
+            class="scroll-cta-card__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
     </section>
 
-    <!-- Dressingroom 텍스트 (X:41, Y:13071, W:355, H:83, Gotu Regular 50, #000000) -->
+    <!-- Dressing Room 텍스트 (X:41, Y:13071, W:355, H:83, Gotu Regular 50, #000000) -->
     <div class="dressingroom-heading">
-      <span class="dressingroom-heading__text">Dressingroom</span>
+      <span class="dressingroom-heading__text">Dressing Room</span>
     </div>
 
     <!-- Dressingroom 하단 카드 가로 스크롤 영역 (위 섹션들과 동일한 구조) -->
@@ -1292,6 +1460,29 @@ onUnmounted(() => {
         :key="card"
         class="dressingroom-card"
       ></div>
+      <button
+        class="dressingroom-card scroll-cta-card"
+        type="button"
+        @click="goToCategory('dressingroom')"
+      >
+        <span class="scroll-cta-card__text">더 알아보기</span>
+        <span class="scroll-cta-card__icon-wrap">
+          <svg
+            class="scroll-cta-card__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+      </button>
     </section>
 
     <!-- 페이지 최하단 추가 배경 직사각형 (X:-2, Y:13901, W:1925, H:671, fill:#F3F3F3) -->
@@ -1309,34 +1500,137 @@ onUnmounted(() => {
       @wheel.prevent="handleBottomLastWheel"
     >
       <div
-        v-for="card in 9"
+        v-for="card in 10"
         :key="card"
         class="bottom-last-card"
       ></div>
-      <!-- 스크롤 맨 끝 CTA 카드 -->
-      <button class="bottom-last-card bottom-last-card--cta" type="button">
-        <span class="bottom-last-cta__text">더 많은 혜택 보러가기</span>
-        <span class="bottom-last-cta__icon-wrap">
-          <svg
-            class="bottom-last-cta__icon"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-          >
-            <path
-              d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </span>
-      </button>
     </section>
 
     <!-- 페이지 최하단 추가 큰 패널 (X:-2, Y:14669, W:1927, H:1055, radius:10, fill:#D9D9D9) -->
-    <div class="bottom-extra-bg"></div>
+    <div class="bottom-extra-bg">
+      <div class="bottom-extra-inner">
+        <!-- 상단: LATENT Friends / LATENT Business Network 카드 -->
+        <section class="ikea-footer-top">
+          <article class="ikea-footer-card">
+            <h3 class="ikea-footer-card__title">LATENT Friends</h3>
+            <p class="ikea-footer-card__body">
+              지금 LATENT Friends에 무료로 가입하고<br />
+              다양한 멤버 전용 혜택을 누리세요.
+            </p>
+            <div class="ikea-footer-card__actions">
+              <button type="button" class="ikea-footer-card__link">자세히 보기</button>
+              <button type="button" class="ikea-footer-card__primary">
+                LATENT Friends 가입하기
+              </button>
+            </div>
+          </article>
+
+          <article class="ikea-footer-card">
+            <h3 class="ikea-footer-card__title">LATENT Business Network</h3>
+            <p class="ikea-footer-card__body">
+              여러분의 더 나은 비즈니스 환경을 위한<br />
+              다양한 혜택들을 받으세요
+            </p>
+            <div class="ikea-footer-card__actions">
+              <button type="button" class="ikea-footer-card__link">자세히 보기</button>
+              <button type="button" class="ikea-footer-card__primary">
+                LATENT Business Network 가입하기
+              </button>
+            </div>
+          </article>
+        </section>
+
+        <!-- 중간: 링크 컬럼 영역 -->
+        <section class="ikea-footer-links">
+          <div class="ikea-footer-column">
+            <h4 class="ikea-footer-column__title">고객문의</h4>
+            <ul class="ikea-footer-column__list">
+              <li>고객 서비스</li>
+              <li>자주 묻는 질문</li>
+              <li>고객지원센터</li>
+              <li>배송조회</li>
+              <li>교환환불</li>
+              <li>품질보증</li>
+              <li>제품리콜</li>
+              <li>피드백</li>
+              <li>부품 신청</li>
+            </ul>
+          </div>
+
+          <div class="ikea-footer-column">
+            <h4 class="ikea-footer-column__title">쇼핑하기</h4>
+            <ul class="ikea-footer-column__list">
+              <li>쇼핑하기</li>
+              <li>전화 주문</li>
+              <li>LATENT for Business</li>
+              <li>셀프 플래닝</li>
+              <li>LATENT 모바일 앱</li>
+              <li>제품 사용 팁 / 가이드</li>
+              <li>브로슈어 / 제품 구매 안내</li>
+              <li>결제 옵션</li>
+              <li>기프트 카드</li>
+            </ul>
+          </div>
+
+          <div class="ikea-footer-column">
+            <h4 class="ikea-footer-column__title">서비스</h4>
+            <ul class="ikea-footer-column__list">
+              <li>LATENT 서비스</li>
+              <li>배송 서비스</li>
+              <li>조립 서비스</li>
+              <li>설치 서비스</li>
+              <li>주방 서비스</li>
+              <li>구매 상담 서비스</li>
+              <li>공간 스타일링 서비스</li>
+              <li>바이백 서비스</li>
+            </ul>
+          </div>
+
+          <div class="ikea-footer-column">
+            <h4 class="ikea-footer-column__title">LATENT 이야기</h4>
+            <ul class="ikea-footer-column__list">
+              <li>브랜드 소개</li>
+              <li>집에서의 생활</li>
+              <li>지속가능한 생활</li>
+              <li>뉴스룸</li>
+              <li>채용정보</li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 하단: 언어, 법적 고지, 사업자 정보 -->
+        <section class="ikea-footer-bottom">
+          <div class="ikea-footer-bottom__left">
+            <div class="ikea-footer-locale">KR 한국어</div>
+            <div class="ikea-footer-copyright">
+              © Inter LATENT Systems B.V 7529-4354
+            </div>
+            <div class="ikea-footer-legal-links">
+              <button type="button" class="ikea-footer-legal-links__item">
+                개인정보처리방침
+              </button>
+              <button type="button" class="ikea-footer-legal-links__item">쿠키 정책</button>
+              <button type="button" class="ikea-footer-legal-links__item">쿠키 설정</button>
+              <button type="button" class="ikea-footer-legal-links__item">
+                웹사이트 이용약관
+              </button>
+              <button type="button" class="ikea-footer-legal-links__item">
+                Responsible disclosure
+              </button>
+            </div>
+          </div>
+
+          <div class="ikea-footer-bottom__right">
+            <p class="ikea-footer-company">
+              LATENT 코리아 유한회사<br />
+              주소: 인천 광역시 부평구 산곡동 마장로 LATENT 광명점<br />
+              대표자: 이석현<br />
+              고객지원센터: 010-7529-4354
+            </p>
+          </div>
+        </section>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1344,7 +1638,7 @@ onUnmounted(() => {
 .page {
   position: relative;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
   background-color: #ffffff;
 }
 
@@ -1390,23 +1684,57 @@ onUnmounted(() => {
   padding-right: 16px;
   gap: 6px;
   outline: none;
+  cursor: pointer;
+
+  /* 프리미엄 톤의 미묘한 호버/포커스 애니메이션 */
+  transition:
+    background-color 0.2s ease-out,
+    box-shadow 0.2s ease-out,
+    transform 0.18s ease-out;
 }
 
 .all-products-pill__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 16px;
   line-height: 1.2;
   letter-spacing: 0;
-  color: #000000;
+  color: #111111;
   white-space: nowrap;
+  transition:
+    color 0.18s ease-out,
+    transform 0.18s ease-out;
 }
 
 .all-products-pill__icon {
   width: 18px;
   height: 18px;
+  color: #111111;
+  transition:
+    color 0.18s ease-out,
+    transform 0.18s ease-out;
+}
+
+.all-products-pill:hover,
+.all-products-pill:focus-visible {
+  background-color: #e3dfdf;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  transform: translateY(-1px);
+}
+
+.all-products-pill:hover .all-products-pill__text,
+.all-products-pill:focus-visible .all-products-pill__text {
   color: #000000;
+  transform: translateY(-0.5px);
+}
+
+.all-products-pill:hover .all-products-pill__icon,
+.all-products-pill:focus-visible .all-products-pill__icon {
+  color: #000000;
+  transform: translateY(-1px);
 }
 
 .all-products-bar {
@@ -1448,7 +1776,7 @@ onUnmounted(() => {
   padding: 8px 18px;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 300;
+  font-weight: 400;
   font-size: 16px;
   line-height: 1.4;
   color: #000000;
@@ -1492,7 +1820,7 @@ onUnmounted(() => {
 .search-placeholder__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -1514,7 +1842,7 @@ onUnmounted(() => {
   background-color: transparent;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -1603,7 +1931,12 @@ onUnmounted(() => {
   width: 1211px;
   height: 1113px;
   border-radius: 15px;
-  background-color: #ede9e9;
+  /* LATENT 겨울 이벤트 메인 배너: 겨울 배경 거실 이미지 + 따뜻한 아이보리 톤 */
+  background-color: #f5f1e8; /* warm ivory, 눈/하늘 톤에 맞춤 */
+  background-image: url('/겨울배경 거실.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .winter-rect-right {
@@ -1613,7 +1946,67 @@ onUnmounted(() => {
   width: 671px;
   height: 1113px;
   border-radius: 15px;
-  background-color: #d9d9d9;
+  /* 겨울 이벤트 우측 혜택 블록 배경: 왼쪽과 자연스럽게 이어지는 따뜻한 아이보리 */
+  background-color: #f5f1e8; /* same warm ivory as left 패널 */
+}
+
+/* 왼쪽 이미지 → 오른쪽 아이보리로 아주 은은하게 페이드되는 horizontal gradient */
+.winter-rect-right::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60px; /* 약간 왼쪽으로 빼서 경계선이 부드럽게 겹치도록 */
+  width: 120px;
+  height: 100%;
+  pointer-events: none;
+  /* 거의 눈에 띄지 않는 정도의 미묘한 그라데이션 */
+  background: linear-gradient(
+    to right,
+    rgba(245, 241, 232, 0) 0%,
+    rgba(245, 241, 232, 0.75) 60%,
+    rgba(245, 241, 232, 1) 100%
+  );
+}
+
+/* 겨울 이벤트 우측 설명 텍스트 블록 */
+.winter-benefit-text {
+  position: absolute;
+  left: 1282px;
+  top: 811px;
+  width: 549px;
+  height: 427px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 18px;
+  color: #000000;
+}
+
+.winter-benefit-text__title {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 400; /* Regular */
+  font-size: 50px;
+  line-height: 1.2;
+}
+
+.winter-benefit-text__line {
+  margin: 8px 0; /* 줄 간격을 조금 더 여유롭게 */
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.4;
+}
+
+.winter-benefit-text__check {
+  display: inline-block;
+  margin-right: 12px;
+  font-family: 'Just Me Again Down Here', cursive;
+  font-size: 70px;
+  line-height: 1;
+  transform: translateY(6px); /* 텍스트와 수직 정렬 약간 맞추기 */
 }
 
 .color-heading {
@@ -1666,7 +2059,12 @@ onUnmounted(() => {
   top: 2305px;
   width: 240px;
   height: 305px;
+  /* LATENT 펜던트 램프 카드에 램프 이미지를 배경으로 적용 */
   background-color: #d9d9d9;
+  background-image: url('/lamp.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border-radius: 15px;
 }
 
@@ -1748,13 +2146,20 @@ onUnmounted(() => {
   width: 1206px;
   height: 633px;
   border-radius: 15px;
-  background-color: #b8b4ae;
+  /* 거실 인테리어 이미지를 배경으로 사용 (기본색은 아이보리) */
+  background-color: #f7f3e8; /* ivory */
+  background-image: url('/거실.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .new-products-panel--right {
   left: 1215px;
   width: 601px;
-  background-color: #d9d9d9;
+  /* 오른쪽 패널만 따뜻한 아이보리 단색 배경 사용 */
+  background-color: #f5f1e8; /* warm ivory */
+  background-image: none; /* 왼쪽 패널의 이미지 상속 제거 */
 }
 
 .membership-heading {
@@ -1842,6 +2247,28 @@ onUnmounted(() => {
   }
 }
 
+/* 상품 리스트(신제품 패널)와 멤버십 배너 섹션 사이 세로 간격 조정 */
+@media (min-width: 1025px) {
+  .new-products-panel,
+  .new-products-panel--right {
+    margin-bottom: 48px;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 1024px) {
+  .new-products-panel,
+  .new-products-panel--right {
+    margin-bottom: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .new-products-panel,
+  .new-products-panel--right {
+    margin-bottom: 24px;
+  }
+}
+
 .membership-body {
   position: absolute;
   left: 75px;
@@ -1857,7 +2284,7 @@ onUnmounted(() => {
   margin: 0;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 30px;
   line-height: 1.4;
   letter-spacing: 0;
@@ -1924,10 +2351,10 @@ onUnmounted(() => {
 }
 
 .membership-benefit-list__item {
-  margin: 0;
+  margin: 8px 0; /* 혜택 항목들 사이 간격을 조금 띄움 */
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 30px;
   line-height: 1.4;
   letter-spacing: 0;
@@ -1937,7 +2364,7 @@ onUnmounted(() => {
 .membership-benefit-cta {
   position: absolute;
   left: 1255px;
-  top: 3185px;
+  top: 3205px; /* 기존 위치에서 살짝 아래로 이동 */
   width: 324px;
   max-width: 100%;
   height: 96px;
@@ -2010,8 +2437,19 @@ onUnmounted(() => {
   width: 661px;
   height: 924px;
   border-radius: 15px;
-  background-color: #d9d9d9;
+  /* 메인 하단 왼쪽 패널: 아이보리색 대신 화이트 체어 이미지 사용 */
+  background-color: #f7f3e8; /* 이미지 로딩 실패 시 fallback 배경 */
+  background-image: url('/white chair.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   box-shadow: 0 0 0 1px #ffffff inset;
+  /* hover 시에도 border-radius는 그대로 두고, 색/그림자/살짝 떠오르는 효과만 부여 */
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    filter 0.22s ease;
+  will-change: transform, box-shadow, filter;
 }
 
 .bottom-extra-panel--right {
@@ -2019,6 +2457,20 @@ onUnmounted(() => {
   top: 3649px;
   width: 671px;
   height: 414px;
+  background-color: #f7f3e8; /* 아이보리 (이미지 로딩 실패 시 fallback) */
+  /* 'LATENT 멤버십 회원에게만 제공되는 전용 할인과 쿠폰 혜택' 텍스트가 올라가는 중앙 상단 카드 배경
+     - 의자 사진 대신 쿠폰 이미지(@public/광고 이미지.jpeg) 사용
+     - 다른 가구 카드들과 어울리도록 아이보리/웜 화이트 톤으로 살짝 디밍 */
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.28),
+      rgba(245, 241, 233, 0.7)
+    ),
+    url('/광고 이미지.jpeg');
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
 }
 
 .bottom-extra-panel--right-lower {
@@ -2026,6 +2478,13 @@ onUnmounted(() => {
   top: 4063px;
   width: 671px;
   height: 510px;
+  background-color: #f7f3e8; /* 아이보리 (이미지 로딩 실패 시 fallback) */
+  /* '신제품을 가장 먼저 / 출시 전 우선 구매 기회를 제공합니다' 텍스트가 올라가는 카드 배경
+     - 기존 의자 사진 대신, 사용자가 제공한 신제품/택배/장바구니 이미지 그대로 사용 */
+  background-image: url('/광고 이미지2.jpeg');
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
 }
 
 .bottom-extra-panel--far-right {
@@ -2033,6 +2492,18 @@ onUnmounted(() => {
   top: 3649px;
   width: 447px;
   height: 924px;
+  background-color: #f7f3e8; /* 아이보리 (이미지 로딩 실패 시 fallback) */
+  /* 'LATENT의 새로운 디자인 / 공간에 자연스럽게 스며드는 형태' 텍스트가 올라가는 세로형 카드 배경
+     - 기존 의자 사진 대신, 사용자가 제공한 거실/스피커 이미지 사용 */
+  background-image: url('/광고 이미지3.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.bottom-extra-panel:hover {
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+  filter: brightness(0.97);
 }
 
 .membership-coupon-text {
@@ -2142,60 +2613,65 @@ onUnmounted(() => {
   opacity: 0.9;
 }
 
-.bottom-footer-bg {
-  position: absolute;
-  left: 0;
-  top: 4709px;
-  width: 1929px;
-  height: 633px;
-  background-color: #f3f3f3;
+.bottom-footer-section {
+  max-width: 1200px;
+  /* 위 카드 그리드와 아래 카드 그리드 사이 세로 간격을 더 줄임 */
+  margin: 0 auto 4px;
+  padding: 20px 20px 24px;
+  position: relative;
+  /* 섹션 배경 색/모서리 제거: 불필요한 세로 막대가 보이지 않도록 투명 처리 */
+  background-color: transparent;
+  border-radius: 0;
 }
 
 .bottom-footer-scroll {
-  position: absolute;
-  left: 36px;
-  top: 4756px;
-  width: calc(100% - 72px); /* 양 옆 36px 여백 유지 */
-  height: 513px;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
+  position: relative;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 24px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 16px; /* iOS에서 마지막 카드 잘리지 않도록 여유 */
-  -webkit-overflow-scrolling: touch; /* 모바일 부드러운 스크롤 */
-
-  /* 스크롤바 최소화 */
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE, Edge */
-}
-
-.bottom-footer-scroll::-webkit-scrollbar {
-  display: none; /* Chrome, Safari */
+  overflow: visible;
 }
 
 .bottom-footer-card {
-  flex: 0 0 437px; /* 카드 폭 고정 */
-  height: 513px;
+  position: static;
+  min-height: 320px;
   border-radius: 15px;
   background-color: #d9d9d9;
-  position: relative; /* 내부 고정 요소들의 기준 */
   overflow: hidden;
+  cursor: pointer;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    background-color 0.22s ease,
+    filter 0.22s ease;
+  will-change: transform, box-shadow, filter;
 }
 
 .bottom-footer-card__label {
   position: absolute;
   left: 24px;
-  top: 24px;
+  bottom: 24px;
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
   font-weight: 400; /* Regular */
-  font-size: 30px;
+  font-size: var(--text-lg);
   line-height: 1.2;
   letter-spacing: 0;
   color: #000000;
   white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .bottom-footer-scroll {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 1024px) {
+  .bottom-footer-scroll {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .bottom-footer-card__icon {
@@ -2219,14 +2695,20 @@ onUnmounted(() => {
   color: #ffffff;
 }
 
+.bottom-footer-card:hover {
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+  filter: brightness(0.97);
+}
+
 .bottom-large-panel {
-  position: absolute;
-  left: 41px;
-  top: 5463px;
-  width: 1845px;
-  height: 868px;
+  position: relative;
+  max-width: 1200px;
+  margin: 12px auto 0;
+  padding: 40px 20px;
+  width: 100%;
   border-radius: 15px;
   background-color: #d9d9d9;
+  overflow: hidden;
 }
 
 .bottom-large-panel__play {
@@ -2288,6 +2770,13 @@ onUnmounted(() => {
   height: 513px;
   border-radius: 15px;
   background-color: #d9d9d9;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    box-shadow 0.22s ease,
+    background-color 0.22s ease,
+    filter 0.22s ease;
+  will-change: box-shadow, filter;
 }
 
 .bottom-final-heading {
@@ -2366,6 +2855,8 @@ onUnmounted(() => {
   height: 907px;
   border-radius: 15px;
   background-color: #d9d9d9;
+  /* hover 시에도 모서리가 깎이지 않도록, 내부 콘텐츠/그림자를 함께 잘라냄 */
+  overflow: hidden;
 }
 
 .living-room-heading {
@@ -2554,6 +3045,7 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: stretch;
   gap: 24px;
+  padding-right: 40px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -2578,6 +3070,53 @@ onUnmounted(() => {
   height: 572px;
   border-radius: 15px;
   background-color: #d9d9d9;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.scroll-cta-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: none;
+  background-color: #d9d9d9;
+  cursor: pointer;
+}
+
+.scroll-cta-card__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: #111111;
+  text-align: center;
+}
+
+.scroll-cta-card__icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scroll-cta-card__icon {
+  width: 24px;
+  height: 24px;
+  color: #111111;
+  transition:
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.scroll-cta-card:hover .scroll-cta-card__text {
+  color: #000000;
+}
+
+.scroll-cta-card:hover .scroll-cta-card__icon {
+  color: #000000;
+  transform: translateX(2px);
 }
 
 .kitchen-scroll {
@@ -2590,6 +3129,7 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: stretch;
   gap: 24px;
+  padding-right: 40px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -2612,6 +3152,7 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: stretch;
   gap: 24px;
+  padding-right: 40px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -2634,6 +3175,7 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: stretch;
   gap: 24px;
+  padding-right: 40px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -2656,6 +3198,7 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: stretch;
   gap: 24px;
+  padding-right: 40px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -2678,6 +3221,7 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: stretch;
   gap: 24px;
+  padding-right: 40px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -2700,6 +3244,7 @@ onUnmounted(() => {
   flex-direction: row;
   align-items: stretch;
   gap: 24px;
+  padding-right: 40px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -2749,6 +3294,7 @@ onUnmounted(() => {
   height: 513px;
   border-radius: 15px;
   background-color: #d9d9d9;
+  overflow: hidden;
 }
 
 .bottom-last-card--cta {
@@ -2827,9 +3373,250 @@ onUnmounted(() => {
   left: -2px;
   top: 14669px;
   width: 1927px;
-  height: 528px;
+  min-height: 528px;
+  height: auto;
   border-radius: 10px;
   background-color: #d9d9d9;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: 60px 80px;
+  box-sizing: border-box;
+  color: #111111;
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  transition:
+    background-color 0.3s ease-out,
+    box-shadow 0.3s ease-out,
+    transform 0.3s ease-out;
+}
+
+.bottom-extra-inner {
+  width: 100%;
+  max-width: 1760px;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+  margin: 0 auto;
+  /* 페이지 진입 시 은은하게 위로 떠오르는 애니메이션 */
+  opacity: 0;
+  transform: translateY(16px);
+  animation: footer-fade-up 600ms ease-out forwards;
+}
+
+.ikea-footer-top {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+}
+
+.ikea-footer-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 28px 32px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition:
+    box-shadow 0.28s ease-out,
+    transform 0.28s ease-out,
+    background-color 0.28s ease-out;
+}
+
+.ikea-footer-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
+  background-color: #ffffff;
+}
+
+.ikea-footer-card__title {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+}
+
+.ikea-footer-card__body {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.ikea-footer-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ikea-footer-card__link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+  transition:
+    color 0.2s ease-out,
+    transform 0.2s ease-out;
+}
+
+.ikea-footer-card__primary {
+  border-radius: 999px;
+  border: none;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  background-color: #0058a3;
+  color: #ffffff;
+  cursor: pointer;
+  transition:
+    background-color 0.22s ease-out,
+    box-shadow 0.22s ease-out,
+    transform 0.22s ease-out;
+}
+
+.ikea-footer-card__link:hover {
+  color: #0058a3;
+  transform: translateX(2px);
+}
+
+.ikea-footer-card__primary:hover {
+  background-color: #0a6dc2;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  transform: translateY(-1px);
+}
+
+.ikea-footer-card__primary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
+}
+
+.ikea-footer-links {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 32px;
+}
+
+.ikea-footer-column__title {
+  margin: 0 0 10px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.ikea-footer-column__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.ikea-footer-column__list li {
+  position: relative;
+  cursor: pointer;
+  transition:
+    color 0.2s ease-out,
+    transform 0.2s ease-out;
+}
+
+.ikea-footer-column__list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 0;
+  height: 1px;
+  background-color: #111111;
+  transition: width 0.2s ease-out;
+}
+
+.ikea-footer-column__list li:hover {
+  color: #000000;
+  transform: translateX(2px);
+}
+
+.ikea-footer-column__list li:hover::before {
+  width: 100%;
+}
+
+.ikea-footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  padding-top: 24px;
+  font-size: 12px;
+}
+
+.ikea-footer-bottom__left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ikea-footer-locale {
+  font-weight: 600;
+}
+
+.ikea-footer-legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.ikea-footer-legal-links__item {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  transition:
+    color 0.18s ease-out,
+    transform 0.18s ease-out;
+}
+
+.ikea-footer-bottom__right {
+  max-width: 560px;
+}
+
+.ikea-footer-company {
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 푸터 전체의 자연스러운 페이드 업 애니메이션 */
+@keyframes footer-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 모션 최소화 환경에서는 애니메이션/과한 이동 제거 */
+@media (prefers-reduced-motion: reduce) {
+  .bottom-extra-inner {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .ikea-footer-card,
+  .ikea-footer-card__primary,
+  .ikea-footer-card__link,
+  .ikea-footer-column__list li,
+  .ikea-footer-legal-links__item {
+    transition: none;
+    transform: none;
+  }
 }
 
 /* 카테고리 아이콘 + 텍스트를 하나의 컴포넌트처럼 묶은 wrapper */
@@ -2864,13 +3651,16 @@ onUnmounted(() => {
   height: 69px;
   border-radius: 50%;
   background-color: #d9d9d9;
-  transition: filter 0.22s ease-out;
+  overflow: hidden; /* 내부 이미지/배경이 원 밖으로 삐져나오지 않도록 */
+  transition:
+    filter 0.22s ease-out,
+    transform 0.22s ease-out; /* hover 시 아이콘 자체 scale 애니메이션 */
 }
 
 .category-item__label {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100;
+  font-weight: 400;
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -2881,12 +3671,14 @@ onUnmounted(() => {
 
 .category-item:hover,
 .category-item:focus-visible {
-  transform: translateY(-2px) scale(1.04);
+  /* 위치만 살짝 위로 올리고, 실제 scale 은 아이콘 요소에만 적용 */
+  transform: translateY(-2px);
   opacity: 1;
 }
 
 .category-item:hover .category-item__icon,
 .category-item:focus-visible .category-item__icon {
+  transform: scale(1.04);
   filter: brightness(0.94);
 }
 
@@ -2896,14 +3688,19 @@ onUnmounted(() => {
 }
 
 .category-item:active {
-  transform: translateY(-1px) scale(1.01);
+  transform: translateY(-1px);
+}
+
+.category-item:active .category-item__icon {
+  transform: scale(1.01);
 }
 
 /* ---------------------------------------------
  * Global interactive card / surface animations
  * ------------------------------------------ */
 
-/* 카드/패널 공통: 부드러운 호버 애니메이션 (하단 혜택 카드는 제외) */
+/* 카드/패널 공통: 부드러운 호버 애니메이션 (하단 혜택 카드는 제외)
+   - 위치/모서리는 고정, 색/그림자/밝기만 변화 */
 .bottom-final-card,
 .bottom-final-large-card,
 .winter-special-card,
@@ -2925,11 +3722,10 @@ onUnmounted(() => {
 .bottom-last-card,
 .bottom-extra-bg {
   transition:
-    transform 0.22s ease,
     box-shadow 0.22s ease,
     background-color 0.22s ease,
     filter 0.22s ease;
-  will-change: transform, box-shadow, filter;
+  will-change: box-shadow, filter;
 }
 
 .bottom-final-card:hover,
@@ -2952,10 +3748,55 @@ onUnmounted(() => {
 .bottom-large-panel:hover,
 .bottom-last-card:hover,
 .bottom-extra-bg:hover {
-  transform: translateY(-6px);
-  box-shadow:
-    0 18px 40px rgba(0, 0, 0, 0.16),
-    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.16);
+  filter: brightness(0.97);
+}
+
+/* 색상별 인테리어 카드 전용 애니메이션:
+   - hover 시 카드가 살짝 위로 떠오르고
+   - 배경 이미지가 카드 안에서만 부드럽게 확대되도록 처리 */
+.color-card-red,
+.color-card-orange,
+.color-card-yellow,
+.color-card-green,
+.color-card-blue,
+.color-card-purple,
+.color-card-black {
+  position: absolute; /* 기존 레이아웃 유지 */
+  transform: translateY(0);
+  transition:
+    transform 0.28s ease-out,
+    box-shadow 0.28s ease-out,
+    filter 0.28s ease-out,
+    background-size 0.28s ease-out;
+}
+
+.color-card-red:hover,
+.color-card-orange:hover,
+.color-card-yellow:hover,
+.color-card-green:hover,
+.color-card-blue:hover,
+.color-card-purple:hover,
+.color-card-black:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+  filter: brightness(1.02);
+  background-size: 110%; /* 이미지가 카드 내부에서만 살짝 확대되도록 */
+}
+
+/* 최하단 혜택 카드(작은 4개): hover 시에도 border-radius는 고정,
+   살짝 떠오르고 그림자/밝기만 변화 */
+.bottom-final-card:hover {
+  border-radius: 15px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+  filter: brightness(0.97);
+}
+
+/* 인테리어 카드 섹션 전용: hover 시에도 border-radius는 완전히 고정
+   - 모서리 형태는 그대로 두고, 색/그림자만 살짝 변화 */
+.bottom-final-large-card:hover {
+  border-radius: 15px; /* 기본 상태와 동일하게 고정 */
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
   filter: brightness(0.97);
 }
 
@@ -3003,7 +3844,7 @@ onUnmounted(() => {
 .winter-special-card-text__name {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 20px;
   line-height: 1.4;
   letter-spacing: 0;
@@ -3013,7 +3854,7 @@ onUnmounted(() => {
 .winter-special-card-text__price {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 30px;
   line-height: 1.3;
   letter-spacing: 0;
@@ -3023,7 +3864,7 @@ onUnmounted(() => {
 .winter-special-card-text__original {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 20px;
   line-height: 1.4;
   letter-spacing: 0;
@@ -3036,20 +3877,40 @@ onUnmounted(() => {
   top: 2305px;
   width: 240px;
   height: 305px;
+  /* 첫 번째 겨울 특가 카드 (펜던트 램프) 공통 스타일 + 배경 이미지 */
   background-color: #d9d9d9;
+  background-image: url('/lamp.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border-radius: 15px;
 }
 
 .winter-special-card--second {
   left: 296px;
+  /* 두 번째 카드: 검정 가죽 패딩 브라운 나무 의자 이미지 */
+  background-image: url('/chair.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .winter-special-card--third {
   left: 552px;
+  /* 세 번째 카드: 침대 이미지 - 파일명을 맞게 저장해 주세요 */
+  background-image: url('/bed.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .winter-special-card--fourth {
   left: 808px;
+  /* 네 번째 카드: 클래식 로마 숫자 앤틱 탁상시계 이미지 */
+  background-image: url('/clock.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .winter-special-card--fifth {
@@ -3058,6 +3919,11 @@ onUnmounted(() => {
 
 .winter-special-card--sixth {
   left: 1320px;
+  /* 여섯 번째 카드: 헤리티지 북 인테리어 소품 이미지 */
+  background-image: url('/책.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .winter-special-card--seventh {
@@ -3071,7 +3937,13 @@ onUnmounted(() => {
   width: 256px;
   height: 337px;
   border-radius: 15px;
+  /* 기본 빨간색 톤을 유지하면서 배경 이미지를 입힘 */
   background-color: #e25050;
+  background-image: url('/red interior.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
 }
 
 .color-card-red-label {
@@ -3122,7 +3994,13 @@ onUnmounted(() => {
   width: 256px;
   height: 337px;
   border-radius: 15px;
+  /* 기본 주황색 톤을 유지하면서 배경 이미지를 입힘 */
   background-color: #f58f00;
+  background-image: url('/orange interior.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
 }
 
 .color-card-orange-icon {
@@ -3151,7 +4029,13 @@ onUnmounted(() => {
   width: 256px;
   height: 337px;
   border-radius: 15px;
+  /* 기본 노란색 톤을 유지하면서 배경 이미지를 입힘 */
   background-color: #e4eb19;
+  background-image: url('/yellow interior.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
 }
 
 .color-card-yellow-label {
@@ -3196,7 +4080,13 @@ onUnmounted(() => {
   width: 256px;
   height: 337px;
   border-radius: 15px;
+  /* 기본 초록색 톤을 유지하면서 배경 이미지를 입힘 */
   background-color: #12b543;
+  background-image: url('/green interior.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
 }
 
 .color-card-green-label {
@@ -3247,7 +4137,13 @@ onUnmounted(() => {
   width: 256px;
   height: 337px;
   border-radius: 15px;
+  /* 기본 파란색 톤을 유지하면서 배경 이미지를 입힘 */
   background-color: #0014f5;
+  background-image: url('/blue.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
 }
 
 .color-card-blue-icon {
@@ -3298,7 +4194,13 @@ onUnmounted(() => {
   width: 256px;
   height: 337px;
   border-radius: 15px;
+  /* 기본 보라색 톤을 유지하면서 배경 이미지를 입힘 */
   background-color: #7632d5;
+  background-image: url('/purple.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
 }
 
 .color-card-purple-icon {
@@ -3338,7 +4240,7 @@ onUnmounted(() => {
   font-size: 30px;
   line-height: 1.2;
   letter-spacing: 0;
-  color: #000000;
+  color: #ffffff;
   white-space: nowrap;
 }
 
@@ -3349,7 +4251,13 @@ onUnmounted(() => {
   width: 256px;
   height: 337px;
   border-radius: 15px;
+  /* 기본 검정 톤을 유지하면서 배경 이미지를 입힘 */
   background-color: #000000;
+  background-image: url('/classic interior.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
 }
 
 .color-card-black-label {
@@ -3400,7 +4308,12 @@ onUnmounted(() => {
   width: 256px;
   height: 337px;
   border-radius: 15px;
+  /* 기본 파란색 톤을 유지하면서 배경 이미지를 입힘 (중복 정의 1) */
   background-color: #0014f5;
+  background-image: url('/blue.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .color-card-blue-icon {
@@ -3420,7 +4333,12 @@ onUnmounted(() => {
   width: 256px;
   height: 337px;
   border-radius: 15px;
+  /* 기본 파란색 톤을 유지하면서 배경 이미지를 입힘 (중복 정의 2) */
   background-color: #0014f5;
+  background-image: url('/blue.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .color-card-yellow-arrow {
@@ -3447,7 +4365,7 @@ onUnmounted(() => {
   font-size: 30px;
   line-height: 1.2;
   letter-spacing: 0;
-  color: #000000;
+  color: #ffffff;
   white-space: nowrap;
 }
 
@@ -3717,7 +4635,7 @@ onUnmounted(() => {
 .tenth-extra-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3799,7 +4717,7 @@ onUnmounted(() => {
 .single-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3821,7 +4739,7 @@ onUnmounted(() => {
 .second-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3843,7 +4761,7 @@ onUnmounted(() => {
 .third-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3854,7 +4772,7 @@ onUnmounted(() => {
 .fourth-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3887,7 +4805,7 @@ onUnmounted(() => {
 .fifth-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3909,7 +4827,7 @@ onUnmounted(() => {
 .sixth-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3931,7 +4849,7 @@ onUnmounted(() => {
 .seventh-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3953,7 +4871,7 @@ onUnmounted(() => {
 .eighth-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3975,7 +4893,7 @@ onUnmounted(() => {
 .ninth-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -3997,7 +4915,7 @@ onUnmounted(() => {
 .tenth-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -4041,7 +4959,7 @@ onUnmounted(() => {
 .nav-item {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -4221,7 +5139,7 @@ onUnmounted(() => {
 .rect-label__inner {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -4243,7 +5161,7 @@ onUnmounted(() => {
 .fifth-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -4265,7 +5183,7 @@ onUnmounted(() => {
 .sixth-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -4287,7 +5205,7 @@ onUnmounted(() => {
 .seventh-category-label__text {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
-  font-weight: 100; /* Thin */
+  font-weight: 400; /* Regular */
   font-size: 25px;
   line-height: 1.2;
   letter-spacing: 0;
@@ -4365,6 +5283,58 @@ onUnmounted(() => {
   height: 30px;
 }
 
+/* ===== Global layout & header (responsive refactor) ===== */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 24px;
+}
+
+.site-header__logo {
+  flex: 0 0 auto;
+}
+
+.site-header__center {
+  flex: 1 1 320px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-header__auth {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 480px) {
+  .site-header {
+    align-items: flex-start;
+  }
+
+  .site-header__center {
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .site-header__auth {
+    order: 2;
+  }
+}
+
 .category-line {
   position: absolute;
   left: 137px;
@@ -4409,5 +5379,93 @@ onUnmounted(() => {
 
 .category-line--10 {
   left: 913px;
+}
+
+/* 신제품 카테고리(첫 번째) 아이콘에만 흰색 의자 이미지를 배경으로 적용 */
+.category-item--1 .category-item__icon {
+  background-image: url('/white chair.avif');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 겨울 이벤트 카테고리(두 번째) 아이콘에만 겨울 가구 이미지를 배경으로 적용 */
+.category-item--2 .category-item__icon {
+  background-image: url('/winter furniture.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 수납가구 카테고리(세 번째) 아이콘에만 수납 가구 이미지를 배경으로 적용 */
+.category-item--3 .category-item__icon {
+  background-image: url('/shelter.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 수납 용품 카테고리(네 번째) 아이콘에만 서랍 이미지 배경 적용 */
+.category-item--4 .category-item__icon {
+  background-image: url('/drawer.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 침대 / 매트리스 카테고리(다섯 번째) 아이콘에만 침대 이미지 배경 적용 */
+.category-item--5 .category-item__icon {
+  background-image: url('/white bed.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 소파 / 암체어 카테고리(여섯 번째) 아이콘에만 소파 이미지 배경 적용 */
+.category-item--6 .category-item__icon {
+  background-image: url('/sofa.webp'); /* public/sofa.webp 에 이미지가 있어야 합니다 */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 식탁 / 테이블 / 의자 카테고리(일곱 번째) 아이콘에만 식탁/의자 이미지 배경 적용 */
+.category-item--7 .category-item__icon {
+  background-image: url('/tlrxkrxpdlqmfdmlwk.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 책상/사무용의자 카테고리(여덟 번째) 아이콘에만 책상/의자 이미지 배경 적용 */
+.category-item--8 .category-item__icon {
+  background-image: url('/cortkdtkandyddmlwk.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 주방가구 카테고리(아홉 번째) 아이콘에만 주방 이미지 배경 적용 */
+.category-item--9 .category-item__icon {
+  background-image: url('/wnqkdrkrndlsxpfldj.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 주방 용품 카테고리(열 번째) 아이콘에만 주방 용품 이미지 배경 적용 */
+.category-item--10 .category-item__icon {
+  background-image: url('/wnqkddydvna.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 조명 카테고리(열한 번째) 아이콘에만 조명 이미지 배경 적용 */
+.category-item--11 .category-item__icon {
+  background-image: url('/whaud.webp');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 </style>
