@@ -7,7 +7,16 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #ffffff;
+  /* 상단 흰색 → 중앙 아이보리 → 하단 다시 흰색으로 부드럽게 전환되는 배경 */
+  background: linear-gradient(
+    to bottom,
+    #ffffff 0,
+    #ffffff 80px,
+    #f7f3ea 200px,
+    #f7f3ea calc(100% - 200px),
+    #ffffff 100%
+  );
+  color: #111827; /* Text Primary */
   overflow-x: hidden; /* 전체 페이지 가로 스크롤 제거 */
   width: 100%;
 }
@@ -46,4 +55,64 @@ html {
   body {
     font-size: 16px;
   }
+}
+
+/* ===== Global color system ===== */
+:root {
+  /* Palette */
+  --color-bg: #f7f3ea; /* Background (페이지 전체) */
+  --color-surface: #ffffff; /* Surface (카드/섹션) */
+  --color-sub-surface: #f2f2f2; /* 입력창/리스트 */
+  --color-border: #d1d5db; /* Border/Divider */
+  --color-text-primary: #111827; /* Text Primary */
+  --color-text-secondary: #6b7280; /* Text Secondary */
+}
+
+/* 기본 카드/섹션: 명시적으로 클래스가 붙은 경우에만 적용 */
+.surface-card {
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 30px rgba(17, 24, 39, 0.06);
+}
+
+/* 기본 입력창 */
+input,
+textarea {
+  background-color: var(--color-sub-surface);
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-secondary);
+}
+
+/* 기본 버튼 */
+button {
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.1s ease;
+}
+
+button:hover {
+  background-color: var(--color-sub-surface);
+  box-shadow: 0 8px 20px rgba(17, 24, 39, 0.06);
+}
+
+button:active {
+  transform: translateY(1px);
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.08);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-border);
+  outline-offset: 2px;
 }

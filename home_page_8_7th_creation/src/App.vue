@@ -19,16 +19,18 @@ const handleSearchBlur = () => {
 
 const isAllProductsOpen = ref(false)
 
-// '모든 제품' 포함 전체 옵션 목록
+// '모든 제품' 드롭다운에 표시할 카테고리 목록
+// (위 헤더 메뉴에 나오는 텍스트들을 세로로 표시)
 const allProductsOptions = [
   '모든 제품',
-  '베스트',
-  '제작 상품 보기',
-  '인테리어 디자인 클래스',
-  '전문가 찾기',
-  '이벤트',
-  '커뮤니티',
-  '문의',
+  '마이스터 컬렉션',
+  '인테리어',
+  '거실',
+  '침실',
+  '주방',
+  '아이방',
+  '서재',
+  '오피스',
 ]
 
 // 현재 pill에 표시되는 레이블
@@ -242,6 +244,45 @@ const stopAutoScroll = (id: number | null, setId: (id: number | null) => void) =
   }
 }
 
+// ===== Scroll reveal (fade-up) animation for .scroll-reveal elements =====
+let scrollRevealObserver: IntersectionObserver | null = null
+
+const setupScrollReveal = () => {
+  const elements = document.querySelectorAll<HTMLElement>('.scroll-reveal')
+
+  // 실제 DOM에 몇 개나 있는지 확인용 로그
+  console.log('[scroll-reveal] elements found:', elements.length)
+
+  if (!elements.length) return
+
+  scrollRevealObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach(entry => {
+        const target = entry.target as HTMLElement
+
+        if (entry.isIntersecting) {
+          console.log('[scroll-reveal] intersect', target)
+          target.classList.add('active')
+          // 한 번만 실행되도록 관찰 해제
+          observer.unobserve(target)
+        }
+      })
+    },
+    {
+      threshold: 0.15,
+    }
+  )
+
+  elements.forEach(el => {
+    console.log('[scroll-reveal] observe', el)
+    scrollRevealObserver?.observe(el)
+  })
+}
+
+onMounted(() => {
+  setupScrollReveal()
+})
+
 onMounted(() => {
   startAutoScroll(
     () => bottomFinalScrollRef.value,
@@ -255,6 +296,13 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (scrollRevealObserver) {
+    scrollRevealObserver.disconnect()
+    scrollRevealObserver = null
+  }
+})
+
+onUnmounted(() => {
   stopAutoScroll(bottomFooterAutoScrollId, id => (bottomFooterAutoScrollId = id))
   stopAutoScroll(bottomFinalAutoScrollId, id => (bottomFinalAutoScrollId = id))
   stopAutoScroll(bottomInteriorAutoScrollId, id => (bottomInteriorAutoScrollId = id))
@@ -264,18 +312,63 @@ onUnmounted(() => {
 <template>
   <div class="page">
     <header class="site-header">
-      <!-- Left: 브랜드 로고 -->
-      <div class="site-header__logo">
-        <div class="top-text">
-          <span class="top-text__inner">
-            LATENT
-          </span>
+      <div class="site-header__inner">
+        <!-- Left: 브랜드 로고 -->
+        <div class="site-header__logo">
+          <div class="top-text">
+            <span class="top-text__inner">
+              LATENT
+            </span>
+          </div>
         </div>
-      </div>
 
-      <!-- Center: 카테고리 선택 + 검색 -->
-      <div class="site-header__center">
-        <!-- 상단 '모든 제품' 강조 직사각형 + 드롭다운 -->
+        <!-- Center: 카테고리 선택 + 검색 -->
+        <div class="site-header__center">
+        <!-- 상단 '모든 제품' pill: 실제 버튼으로 동작 (드롭다운 토글) -->
+        <button class="all-products-button" type="button" @click="toggleAllProducts">
+          <svg
+            class="all-products-button__icon"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="m19.5 8.25-7.5 7.5-7.5-7.5"
+            />
+          </svg>
+          <span class="all-products-button__label">{{ selectedAllProductsLabel }}</span>
+        </button>
+
+        <!-- '모든 제품' 버튼 아래에 위치하는 검색바 -->
+        <div class="top-search-bar">
+          <div class="top-search-bar__group">
+            <svg
+              class="top-search-bar__icon"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="1.5"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+              />
+            </svg>
+            <input
+              class="top-search-bar__input"
+              type="text"
+              placeholder="검색어 입력"
+            />
+          </div>
+        </div>
+
+        <!-- (기존) 상단 '모든 제품' 강조 직사각형 + 드롭다운 -->
         <div class="all-products-wrapper">
           <button class="all-products-pill" type="button" @click="toggleAllProducts">
             <svg
@@ -314,13 +407,14 @@ onUnmounted(() => {
 
         <!-- 상단 검색어 입력 placeholder / 검색바 (클릭 시 전환) -->
         <div class="search-placeholder" @click="handleSearchClick">
-          <template v-if="!isSearchActive">
+          <!-- 돋보기 아이콘 + 텍스트/입력을 묶는 flex 컨테이너 -->
+          <div class="search-input-group">
             <svg
               class="search-placeholder__icon"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              stroke-width="2"
+              stroke-width="1.5"
               stroke="currentColor"
             >
               <path
@@ -329,27 +423,33 @@ onUnmounted(() => {
                 d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
               />
             </svg>
-            <span class="search-placeholder__text">검색어 입력</span>
-          </template>
-          <input
-            v-else
-            class="search-input"
-            type="text"
-            v-model="searchQuery"
-            @blur="handleSearchBlur"
-          />
-        </div>
-      </div>
 
-      <!-- Right: 회원가입 / 로그인 -->
-      <div class="site-header__auth">
-        <div class="top-rect">
-          <span class="top-rect__text">회원가입</span>
+            <!-- placeholder / 입력 필드 전환 -->
+            <template v-if="!isSearchActive">
+              <span class="search-placeholder__text">검색어 입력</span>
+            </template>
+            <input
+              v-else
+              class="search-input"
+              type="text"
+              v-model="searchQuery"
+              @blur="handleSearchBlur"
+            />
+          </div>
         </div>
-        <div class="top-rect--black">
-          <span class="top-rect--black__text">로그인</span>
+        <!-- /.site-header__center -->
         </div>
-      </div>
+
+        <!-- Right: 회원가입 / 로그인 -->
+        <div class="site-header__auth">
+          <button class="top-rect" type="button">
+            <span class="top-rect__text">회원가입</span>
+          </button>
+          <button class="top-rect--black" type="button">
+            <span class="top-rect--black__text">로그인</span>
+          </button>
+        </div>
+      </div> <!-- /.site-header__inner -->
     </header>
 
   <!-- Category items: icon + label (원 + 텍스트를 하나의 인터랙션 단위로 묶음) -->
@@ -635,13 +735,39 @@ onUnmounted(() => {
     <!-- 크리스마스 오른쪽 큰 직사각형 (X:1221, Y:468, W:671, H:1113, radius:15, fill:#D9D9D9) -->
     <div class="winter-rect-right"></div>
 
-  <!-- 겨울 이벤트 우측 텍스트 블록:
-       '회원 전용 최대 혜택' 및 상세 설명 -->
+  <!-- 겨울 이벤트 우측 텍스트 블록: LATENT 겨울 이벤트 소개 및 혜택 안내 -->
   <div class="winter-benefit-text">
-    <p class="winter-benefit-text__title">회원 전용 최대 혜택</p>
-    <p class="winter-benefit-text__line">신상품 우선 구매 권한</p>
-    <p class="winter-benefit-text__line">배송·설치 비용 부담 없이</p>
-    <p class="winter-benefit-text__line">겨울 큐레이션 콘텐츠 제공</p>
+    <p class="winter-benefit-text__title">LATENT 겨울 이벤트</p>
+    <p class="winter-benefit-text__line">
+      차가운 계절,<br />
+      공간은 더 따뜻하게.<br />
+      이번 겨울,<br /><br />
+      LATENT가 준비한 겨울 한정 이벤트로<br />
+      더 좋은 조건에서 시작해보세요.
+    </p>
+
+    <p class="winter-benefit-text__title">겨울 이벤트로 누리는 혜택</p>
+    <p class="winter-benefit-text__line">
+      제작 비용 할인 혜택<br />
+      → 겨울 시즌 한정 특별가 적용
+    </p>
+    <p class="winter-benefit-text__line">
+      추가 수정 1회 무료 제공<br />
+      → 디테일까지 여유 있게
+    </p>
+    <p class="winter-benefit-text__line">
+      우선 제작 진행<br />
+      → 대기 없이 빠른 일정
+    </p>
+    <p class="winter-benefit-text__line">
+      겨울 이벤트 전용 디자인 옵션<br />
+      → 시즌 감성에 맞춘 비주얼 포인트
+    </p>
+
+    <p class="winter-benefit-text__line">
+      겨울이 지나기 전에,<br />
+      당신의 공간을 먼저 완성하세요.
+    </p>
   </div>
 
     <!-- '색상별 인테리어' heading text (X:40, Y:1671, W:201, H:36) -->
@@ -1052,6 +1178,31 @@ onUnmounted(() => {
 
     <!-- 하단 가장 오른쪽 세로형 추가 영역 (X:1369, Y:3649, W:447, H:924, radius:15, fill:#D9D9D9, stroke:#FFFFFF) -->
     <div class="bottom-extra-panel bottom-extra-panel--far-right"></div>
+
+    <!-- 두 번째 행 큰 패널 상단 텍스트 -->
+    <div class="bottom-extra-video-heading">
+      <span class="bottom-extra-video-heading__text">LATENT를 영상으로 느껴보기</span>
+    </div>
+
+    <!-- 기존 좌측 패널과 너비/높이가 동일한 추가 블록 (바로 아래 행) -->
+    <div class="bottom-extra-panel bottom-extra-panel--second-row">
+      <!-- 자동 재생/루프/무음/인라인 재생 영상 -->
+      <video
+        class="bottom-extra-video"
+        src="/20260110_0224_New Video_simple_compose_01kehwkypyf7b9x9kr2qrv1req.gif"
+        autoplay
+        loop
+        muted
+        playsinline
+      ></video>
+    </div>
+
+    <!-- 두 번째 행 큰 블록 바로 아래, 같은 너비 안에 정렬된 카드 3개 -->
+    <div class="bottom-extra-cards-below">
+      <div class="bottom-extra-card"></div>
+      <div class="bottom-extra-card"></div>
+      <div class="bottom-extra-card"></div>
+    </div>
 
     <!-- LATENT 멤버십 회원 전용 할인/쿠폰 문구 (X:725, Y:3973, W:480, H:72)
          첫째 줄 끝을 '제공되는'까지 고정 -->
@@ -1642,6 +1793,15 @@ onUnmounted(() => {
   background-color: #ffffff;
 }
 
+/* 이 컴포넌트 안의 모든 section 기본 여백을 살짝만 두어
+   섹션 사이 간격을 자연스럽게 유지 */
+section {
+  margin-block-start: 0;
+  /* 기존 대비 약 1.5배 간격 */
+  margin-block-end: 12px;
+  padding-block-end: 12px;
+}
+
 .top-text {
   position: absolute;
   left: 38px;
@@ -1739,6 +1899,7 @@ onUnmounted(() => {
 
 .all-products-bar {
   position: absolute;
+  /* Figma: X 1047, Y 29, W 542, H 69, Fill #D9D9D9 */
   left: 1047px;
   top: 29px;
   width: 542px;
@@ -1747,13 +1908,136 @@ onUnmounted(() => {
   border-radius: 50px;
 }
 
+.all-products-button {
+  position: absolute;
+  left: 1047px; /* Figma X */
+  top: 29px; /* Figma Y */
+  /* '모든 제품' pill 의 가로 폭을 조금 더 넓게 */
+  width: 160px;
+  height: 69px; /* Figma H */
+  border-radius: 50px;
+  background-color: #ede9e9; /* Figma 채우기 #EDE9E9 */
+  border: none;
+  display: flex;
+  align-items: center;
+  /* 아이콘 + 텍스트를 왼쪽 정렬하되, 전체를 약간 오른쪽으로 이동 */
+  justify-content: flex-start;
+  padding-left: 20px;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 100; /* Thin */
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease-out,
+    box-shadow 0.2s ease-out,
+    transform 0.18s ease-out;
+}
+
+.all-products-button:hover,
+.all-products-button:focus-visible {
+  background-color: #e3dfdf;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+  transform: translateY(-1px);
+}
+
+.all-products-button__icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+}
+
+.all-products-button__label {
+  display: inline-block;
+}
+
+/* '모든 제품' 버튼과 같은 회색 바 안에 들어가는 검색바 */
+.top-search-bar {
+  position: absolute;
+  left: 1047px;
+  top: 29px; /* 버튼과 같은 Y */
+  width: 542px; /* 회색 바 전체 폭과 동일 */
+  height: 69px; /* 회색 바 높이와 동일 */
+  border-radius: 50px;
+  background-color: transparent; /* 회색 바와 합쳐진 느낌을 위해 배경 제거 */
+  border: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.top-search-bar__group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* '모든 제품' 버튼(폭 160px) 오른쪽에서 시작하도록 여백 */
+  margin-left: 180px;
+  width: 100%;
+}
+
+.top-search-bar__icon {
+  width: 20px;
+  height: 20px;
+  color: #5b4a4a;
+}
+
+.top-search-bar__input {
+  flex: 1 1 auto;
+  height: 100%;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 400;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+}
+
+.all-products-rect {
+  position: absolute;
+  left: 1047px; /* Figma X */
+  top: 29px; /* Figma Y */
+  width: 128px; /* Figma W */
+  height: 69px; /* Figma H */
+  border-radius: 50px;
+  background-color: #ede9e9; /* Figma 채우기 #EDE9E9 */
+}
+
 .all-products-wrapper {
   position: absolute;
   left: 1047px;
   top: 29px;
   height: 69px;
-  display: inline-flex;
+  /* 상단 검색바에 겹쳐 보이던 '모든 제품' pill을 숨김 */
+  display: none;
   align-items: flex-start;
+}
+
+/* Figma 조건(X:1034, Y:29, W:128, H:69, Inter Thin 20)으로 표시되는 '모든 제품' 텍스트 */
+.all-products-text {
+  position: absolute;
+  left: 1034px;
+  top: 29px;
+  width: 128px;
+  height: 69px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 100; /* Thin */
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
 }
 
 .all-products-dropdown {
@@ -1805,16 +2089,23 @@ onUnmounted(() => {
 
 .search-placeholder {
   position: absolute;
-  left: 1190px;
+  /* 검색바를 좌우로 조금 더 넓게 확장 */
+  left: 1050px;
   top: 29px;
-  width: 180px;
+  width: 500px;
   height: 69px;
-  display: flex;
+  /* 상단 검색 바 전체를 숨김 */
+  display: none;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
   z-index: 2;
   cursor: text;
+  /* 검색바 주변에 얇은 검정 외곽선 추가 */
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  border-radius: 50px;
+  box-sizing: border-box;
+  /* 안쪽은 투명하게 두어 아래쪽 회색 블록이 보이도록 */
+  background-color: transparent;
 }
 
 .search-placeholder__text {
@@ -1826,12 +2117,16 @@ onUnmounted(() => {
   letter-spacing: 0;
   color: #a39191;
   white-space: nowrap;
+  /* 아이콘 바로 오른쪽에서 시작 */
+  padding-left: 0;
 }
 
 .search-placeholder__icon {
-  width: 24px;
-  height: 24px;
+  /* 검색어 텍스트(25px)에 맞춘 size-5 정도의 크기 */
+  width: 20px;
+  height: 20px;
   color: #5b4a4a;
+  padding-left: 0;
 }
 
 .search-input {
@@ -1847,6 +2142,19 @@ onUnmounted(() => {
   line-height: 1.2;
   letter-spacing: 0;
   color: #000000;
+  /* 아이콘 오른쪽에서 바로 시작하도록 왼쪽 여백 제거 */
+  padding-left: 0;
+}
+
+/* 돋보기 아이콘 + 입력을 묶는 flex 컨테이너 */
+.search-input-group {
+  display: flex;
+  align-items: center; /* flex items-center */
+  gap: 8px; /* gap-2 (≈ 8px) */
+  /* 돋보기 + input 묶음을 함께 오른쪽으로 이동 (input padding은 그대로) */
+  margin-left: 16px; /* ml-4 */
+  width: auto;
+  height: 100%;
 }
 
 .top-rect {
@@ -1862,6 +2170,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition:
+    background-color 0.2s ease-out,
+    color 0.2s ease-out,
+    box-shadow 0.2s ease-out,
+    transform 0.18s ease-out;
 }
 
 .top-rect__text {
@@ -1888,6 +2201,31 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition:
+    background-color 0.2s ease-out,
+    color 0.2s ease-out,
+    box-shadow 0.2s ease-out,
+    transform 0.18s ease-out;
+}
+
+.top-rect:hover,
+.top-rect:focus-visible {
+  background-color: #000000;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+  transform: translateY(-1px);
+}
+
+.top-rect:hover .top-rect__text,
+.top-rect:focus-visible .top-rect__text {
+  color: #ffffff;
+}
+
+.top-rect--black:hover,
+.top-rect--black:focus-visible {
+  background-color: #222222;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+  transform: translateY(-1px);
 }
 
 .top-rect--black__text {
@@ -1971,8 +2309,10 @@ onUnmounted(() => {
 /* 겨울 이벤트 우측 설명 텍스트 블록 */
 .winter-benefit-text {
   position: absolute;
-  left: 1282px;
-  top: 811px;
+  /* 아주 조금 왼쪽으로 이동해 좌우 균형 조정 */
+  left: 1260px;
+  /* 살짝 위로 올려 좌측 배너와의 정렬감 개선 */
+  top: 520px;
   width: 549px;
   height: 427px;
   display: flex;
@@ -1989,6 +2329,8 @@ onUnmounted(() => {
   font-weight: 400; /* Regular */
   font-size: 50px;
   line-height: 1.2;
+  /* 이모지 + 텍스트가 줄바꿈 없이 한 줄에 보이도록 */
+  white-space: nowrap;
 }
 
 .winter-benefit-text__line {
@@ -2501,6 +2843,86 @@ onUnmounted(() => {
   background-repeat: no-repeat;
 }
 
+/* 좌측 메인 패널과 동일한 너비·높이로, 바로 아래 행에 추가되는 블록 */
+.bottom-extra-panel--second-row {
+  /* 기본 .bottom-extra-panel 의 left/width/height 는 그대로 사용하고,
+     세로 위치는 아래로 내리고, 너비는 오른쪽으로 확장 */
+  /* 위 섹션과의 간격을 유지하면서 전체 블록을 조금 더 위로 올림 */
+  top: 4770px;
+  /* 왼쪽 큰 패널(661px) + 우측 상단/하단 패널(671px) + 가장 오른쪽 세로 패널(447px)
+     전체를 한 줄로 모두 덮도록 확장 */
+  width: 1779px;
+  background-color: #d9d9d9;
+  background-image: none;
+}
+
+/* 두 번째 행 큰 패널 상단의 제목 텍스트 */
+.bottom-extra-video-heading {
+  position: absolute;
+  left: 36.5px;
+  /* 블록보다 조금 더 위로 올려 시각적 간격 확보 */
+  top: 4700px;
+  width: 400px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.bottom-extra-video-heading__text {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  font-weight: 700; /* Bold */
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: 0;
+  color: #000000;
+  white-space: nowrap;
+}
+
+/* 두 번째 행 큰 패널 중앙의 재생 버튼 */
+.bottom-extra-video-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 96px;
+  height: 96px;
+  border-radius: 999px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+}
+
+.bottom-extra-video-play__icon {
+  width: 40px;
+  height: 40px;
+  color: #ffffff;
+}
+
+/* 두 번째 행 큰 블록 아래에 위치하는 카드 3개 */
+.bottom-extra-cards-below {
+  position: absolute;
+  left: 36.5px;
+  /* 두 번째 행 블록(top: 4770px, height: 924px) 바로 아래 + 여백 */
+  top: 5730px;
+  width: 1779px;
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+}
+
+.bottom-extra-card {
+  flex: 1 1 0;
+  /* 카드 높이를 좀 더 크게 조정 */
+  height: 700px;
+  border-radius: 12px;
+  background-color: #e0e0e0;
+}
+
 .bottom-extra-panel:hover {
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
   filter: brightness(0.97);
@@ -2616,8 +3038,9 @@ onUnmounted(() => {
 .bottom-footer-section {
   max-width: 1200px;
   /* 위 카드 그리드와 아래 카드 그리드 사이 세로 간격을 더 줄임 */
-  margin: 0 auto 4px;
-  padding: 20px 20px 24px;
+  margin: 0 auto;
+  /* 상하 여백을 1.5배 정도 넓힘 */
+  padding: 24px 16px 24px;
   position: relative;
   /* 섹션 배경 색/모서리 제거: 불필요한 세로 막대가 보이지 않도록 투명 처리 */
   background-color: transparent;
@@ -2703,8 +3126,10 @@ onUnmounted(() => {
 .bottom-large-panel {
   position: relative;
   max-width: 1200px;
-  margin: 12px auto 0;
-  padding: 40px 20px;
+  /* 상단 섹션과의 간격을 1.5배 정도 넓힘 */
+  margin: 18px auto 0;
+  /* 위·아래 패딩을 각각 1.5배 정도 증가 */
+  padding: 42px 20px 36px;
   width: 100%;
   border-radius: 15px;
   background-color: #d9d9d9;
@@ -3373,14 +3798,16 @@ onUnmounted(() => {
   left: -2px;
   top: 14669px;
   width: 1927px;
-  min-height: 528px;
+  /* 불필요하게 큰 세로 여백을 줄이기 위해 최소 높이를 살짝 낮춤 */
+  min-height: 420px;
   height: auto;
   border-radius: 10px;
   background-color: #d9d9d9;
   display: flex;
   justify-content: center;
   align-items: stretch;
-  padding: 60px 80px;
+  /* 위·아래 padding을 1.5배 정도 넓힘 */
+  padding: 66px 64px 72px;
   box-sizing: border-box;
   color: #111111;
   box-shadow: 0 0 0 rgba(0, 0, 0, 0);
@@ -3395,7 +3822,8 @@ onUnmounted(() => {
   max-width: 1760px;
   display: flex;
   flex-direction: column;
-  gap: 48px;
+  /* footer 내부 섹션 간 간격을 1.5배 정도 넓힘 */
+  gap: 60px;
   margin: 0 auto;
   /* 페이지 진입 시 은은하게 위로 떠오르는 애니메이션 */
   opacity: 0;
@@ -4389,22 +4817,10 @@ onUnmounted(() => {
   background-color: #d9d9d9;
 }
 
-.single-category-line {
-  position: absolute;
-  left: 137px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
-}
-
+/* 상단 카테고리 아이콘 사이의 세로 구분선은 디자인상 제거 */
+.single-category-line,
 .second-category-line {
-  position: absolute;
-  left: 292px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
 }
 
 .third-category-icon {
@@ -4418,12 +4834,7 @@ onUnmounted(() => {
 }
 
 .third-category-line {
-  position: absolute;
-  left: 441px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
 }
 
 .fourth-category-icon {
@@ -4437,12 +4848,7 @@ onUnmounted(() => {
 }
 
 .fourth-category-line {
-  position: absolute;
-  left: 594px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
 }
 
 .fifth-category-icon {
@@ -4456,12 +4862,7 @@ onUnmounted(() => {
 }
 
 .fifth-category-line {
-  position: absolute;
-  left: 789px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
 }
 
 .sixth-category-icon {
@@ -4475,12 +4876,7 @@ onUnmounted(() => {
 }
 
 .sixth-category-line {
-  position: absolute;
-  left: 988px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
 }
 
 .seventh-category-icon {
@@ -4494,12 +4890,7 @@ onUnmounted(() => {
 }
 
 .seventh-category-line {
-  position: absolute;
-  left: 1206px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
 }
 
 .eighth-category-icon {
@@ -4513,12 +4904,7 @@ onUnmounted(() => {
 }
 
 .eighth-category-line {
-  position: absolute;
-  left: 1408px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
 }
 
 .ninth-category-icon {
@@ -4532,12 +4918,7 @@ onUnmounted(() => {
 }
 
 .ninth-category-line {
-  position: absolute;
-  left: 1573px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
 }
 
 .tenth-category-icon {
@@ -4551,12 +4932,7 @@ onUnmounted(() => {
 }
 
 .tenth-category-line {
-  position: absolute;
-  left: 1719px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
 }
 
 .tenth-extra-icon {
@@ -4931,6 +5307,10 @@ onUnmounted(() => {
   overflow-x: auto;
   overflow-y: visible;
   display: none; /* 카테고리 아이콘/텍스트 전체 숨김 */
+  /* 전역 section 카드 스타일에서 오는 보더/쉐도우 제거 */
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .category-scroll {
@@ -5291,13 +5671,38 @@ onUnmounted(() => {
   gap: 32px;
 }
 
+/* Scroll reveal (fade-up) animation */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition:
+    opacity 0.6s ease-out,
+    transform 0.6s ease-out;
+}
+
+.scroll-reveal.is-visible,
+.scroll-reveal.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background-color: var(--color-surface);
+  margin-bottom: 96px;
+}
+
+.site-header__inner {
+  max-width: 1920px;
+  margin: 0 auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding-top: 24px;
+  padding: 24px 40px 0;
 }
 
 .site-header__logo {
@@ -5320,7 +5725,7 @@ onUnmounted(() => {
 }
 
 @media (max-width: 480px) {
-  .site-header {
+  .site-header__inner {
     align-items: flex-start;
   }
 
@@ -5335,13 +5740,18 @@ onUnmounted(() => {
   }
 }
 
+/* 두 번째 카테고리 구분선 세트도 모두 숨김 */
 .category-line {
-  position: absolute;
-  left: 137px;
-  top: 189px;
-  width: 1px;
-  height: 107px;
-  background-color: #ede9e9;
+  display: none;
+}
+
+/* 영상 영역 스타일 */
+.bottom-extra-video {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 16px;
 }
 
 .category-line--2 {
